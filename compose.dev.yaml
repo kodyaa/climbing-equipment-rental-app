@@ -11,6 +11,7 @@ services:
       - .env
     environment:
       DB_HOST: db
+      SERVER_NAME: ":8000"
     depends_on:
       db:
         condition: service_healthy

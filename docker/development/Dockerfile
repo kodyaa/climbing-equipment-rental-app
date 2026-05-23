@@ -39,7 +39,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # Expose port 8000 for Laravel Octane
 EXPOSE 8000
 
-# Run as non-privileged user
-USER www-data
-
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

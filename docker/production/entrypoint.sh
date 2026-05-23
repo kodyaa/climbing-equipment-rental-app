@@ -59,6 +59,12 @@ else
     echo "Database already has records. Skipping seeder."
 fi
 
+# Ensure storage directories exist
+mkdir -p storage/framework/cache/data
+mkdir -p storage/framework/sessions
+mkdir -p storage/framework/views
+mkdir -p storage/logs
+
 # Link storage
 if [ ! -d "public/storage" ]; then
     echo "Creating public storage link..."
