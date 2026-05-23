@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { NavDocuments } from "@/components/nav-documents"
+import { NavProducts } from "@/components/nav-products"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import {
@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ChartBarIcon, UsersIcon, CameraIcon, FileTextIcon, DatabaseIcon, FileChartColumnIcon, FileIcon } from "lucide-react"
+import { LayoutDashboardIcon, ChartBarIcon, UsersIcon, PackageIcon } from "lucide-react"
 
 const data = {
   navMain: [
@@ -41,86 +41,12 @@ const data = {
       ),
     },
   ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: (
-        <CameraIcon
-        />
-      ),
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
+      name: "Manage Product",
+      url: "/products",
       icon: (
-        <DatabaseIcon
-        />
-      ),
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: (
-        <FileChartColumnIcon
-        />
-      ),
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: (
-        <FileIcon
-        />
+        <PackageIcon />
       ),
     },
   ],
@@ -129,12 +55,12 @@ const data = {
 import { usePage } from "@inertiajs/react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { auth } = usePage<{ auth?: { user?: { name: string; email: string } } }>().props
+  const { auth } = usePage<{ auth?: { user?: { name: string; email: string; avatar?: string | null } } }>().props
 
   const user = {
     name: auth?.user?.name || "Cashier",
     email: auth?.user?.email || "cashier@kodya.id",
-    avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(auth?.user?.name || "Cashier")}&backgroundColor=0a0a0a,1a1a1a&textColor=ffffff`,
+    avatar: auth?.user?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(auth?.user?.name || "Cashier")}&backgroundColor=0a0a0a,1a1a1a&textColor=ffffff`,
   }
 
   return (
@@ -162,7 +88,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
+        <NavProducts items={data.documents} label="Product" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

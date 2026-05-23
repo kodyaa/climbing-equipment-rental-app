@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -19,6 +20,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import {
   CircleUserRoundIcon,
   PencilIcon,
@@ -56,7 +69,7 @@ interface AccountTableProps {
     direction: string | null
   }
   handleEdit: (acc: Account) => void
-  handleDelete: (id: number, name: string) => void
+  handleDelete: (id: number) => void
   handleCreate: () => void
 }
 
@@ -233,7 +246,7 @@ export function AccountTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px] pl-4">
+              <TableHead className="w-12.5 pl-4">
                 <Checkbox
                   checked={isAllCurrentPageSelected}
                   onCheckedChange={(checked) => handleSelectAll(!!checked)}
@@ -282,7 +295,7 @@ export function AccountTable({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="size-8 rounded-full overflow-hidden border bg-neutral-900 shadow-xs flex-shrink-0 flex items-center justify-center">
+                      <div className="size-8 rounded-full overflow-hidden border bg-neutral-900 shadow-xs shrink-0 flex items-center justify-center">
                         {acc.avatar ? (
                           <img src={acc.avatar} alt={acc.name} className="size-8 object-cover" />
                         ) : (
@@ -309,34 +322,59 @@ export function AccountTable({
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="text-xs uppercase font-bold">{acc.country}</span>
-                        <span className="text-xs text-muted-foreground truncate max-w-[150px]">{acc.address || "-"}</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-37.5">{acc.address || "-"}</span>
                       </div>
                     </TableCell>
                   )}
                   {visibleColumns.actions && (
                     <TableCell className="text-right pr-4">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-xs" className="size-8 p-0">
-                            <MoreHorizontalIcon className="size-4 text-muted-foreground" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-36">
-                          <DropdownMenuItem onClick={() => handleEdit(acc)}>
-                            <PencilIcon className="size-3.5 mr-2 text-muted-foreground" />
-                            Edit Account
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleDelete(acc.id, acc.name)}
-                          >
-                            <Trash2Icon className="size-3.5 mr-2" />
-                            Delete Account
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <AlertDialog>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon-xs" className="size-8 p-0">
+                              <MoreHorizontalIcon className="size-4 text-muted-foreground" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-36">
+                            <DropdownMenuItem onClick={() => handleEdit(acc)}>
+                              <PencilIcon className="size-3.5 mr-2 text-muted-foreground" />
+                              Edit Account
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={(e) => e.preventDefault()}
+                              >
+                                <Trash2Icon className="size-3.5 mr-2" />
+                                Delete Account
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <AlertDialogContent size="sm">
+                          <AlertDialogHeader>
+                            <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+                              <Trash2Icon />
+                            </AlertDialogMedia>
+                            <AlertDialogTitle>Delete &ldquo;{acc.name}&rdquo;?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently remove this account. All associated data will be lost and cannot be recovered.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel variant="outline">Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              variant="destructive"
+                              onClick={() => handleDelete(acc.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   )}
                 </TableRow>
@@ -381,6 +419,78 @@ export function AccountTable({
           >
             Next
           </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function SkeletonTable() {
+  return (
+    <div className="flex flex-col gap-4 animate-pulse">
+      {/* Top Filter and Actions Row Mockup */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div className="flex-1 max-w-sm">
+          <Skeleton className="h-9 w-full rounded-md" />
+        </div>
+        <div className="flex items-center gap-2 justify-end">
+          <Skeleton className="h-9 w-24 rounded-md" />
+          <Skeleton className="h-9 w-36 rounded-md" />
+        </div>
+      </div>
+
+      {/* Table Mockup */}
+      <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
+        <div className="border-b px-4 py-3 bg-muted/30">
+          <div className="flex items-center gap-4">
+            <Skeleton className="size-4 rounded-xs shrink-0" />
+            <Skeleton className="h-4 w-24 shrink-0" />
+            <Skeleton className="h-4 w-32 shrink-0 hidden md:block" />
+            <Skeleton className="h-4 w-20 shrink-0 hidden sm:block" />
+            <Skeleton className="h-4 w-12 shrink-0 ml-auto" />
+          </div>
+        </div>
+        <div className="divide-y">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div className="px-4 py-4 flex items-center gap-4" key={index}>
+              {/* Checkbox */}
+              <Skeleton className="size-4 rounded-xs shrink-0" />
+              
+              {/* Name & Avatar */}
+              <div className="flex items-center gap-3 shrink-0">
+                <Skeleton className="size-8 rounded-full shrink-0" />
+                <div className="flex flex-col gap-1.5">
+                  <Skeleton className="h-3.5 w-28" />
+                  <Skeleton className="h-2.5 w-14" />
+                </div>
+              </div>
+
+              {/* Email & Phone */}
+              <div className="flex-col gap-1.5 hidden md:flex shrink-0">
+                <Skeleton className="h-3 w-40 animate-none" />
+                <Skeleton className="h-2.5 w-24 animate-none" />
+              </div>
+
+              {/* Location */}
+              <div className="flex-col gap-1.5 hidden sm:flex shrink-0">
+                <Skeleton className="h-3 w-16 animate-none" />
+                <Skeleton className="h-2.5 w-32 animate-none" />
+              </div>
+
+              {/* Actions */}
+              <Skeleton className="size-8 rounded-md ml-auto shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Pagination Mockup */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
+        <Skeleton className="h-4 w-32 rounded-md" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-20 rounded-md" />
+          <Skeleton className="h-4 w-24 rounded-md" />
+          <Skeleton className="h-8 w-16 rounded-md" />
         </div>
       </div>
     </div>

@@ -33,5 +33,9 @@ class DatabaseSeeder extends Seeder
             'country' => 'id',
             'address' => 'Jl. Jenderal Sudirman No. 12, Jakarta, Indonesia',
         ]);
+
+        $this->call([
+            ProductSeeder::class,
+        ]);
     }
 }

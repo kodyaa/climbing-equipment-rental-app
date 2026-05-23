@@ -43,7 +43,7 @@ class AccountsController extends Controller
             ->withQueryString();
 
         return Inertia::render('Accounts', [
-            'accounts' => $accounts,
+            'accounts' => Inertia::defer(fn () => $accounts),
             'filters' => [
                 'search' => $search,
                 'sort' => $sort,
@@ -147,6 +147,8 @@ class AccountsController extends Controller
             return redirect()->back()->with('error', 'You cannot delete your own account.');
         }
 
+        $name = $user->name;
+
         if ($user->avatar && str_starts_with($user->avatar, '/storage/')) {
             $oldPath = str_replace('/storage/', '', $user->avatar);
             Storage::disk('public')->delete($oldPath);
@@ -154,6 +156,6 @@ class AccountsController extends Controller
 
         $user->delete();
 
-        return redirect()->back()->with('success', 'Account deleted successfully!');
+        return redirect()->back()->with('success', "{$name}'s account has been deleted.");
     }
 }

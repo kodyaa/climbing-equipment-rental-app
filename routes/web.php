@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\ProductsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -18,4 +19,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/accounts', [AccountsController::class, 'store'])->name('accounts.store');
     Route::post('/accounts/{user}', [AccountsController::class, 'update'])->name('accounts.update');
     Route::delete('/accounts/{user}', [AccountsController::class, 'destroy'])->name('accounts.destroy');
+
+    Route::get('/products', [ProductsController::class, 'index'])->name('products.index');
+    Route::post('/products', [ProductsController::class, 'store'])->name('products.store');
+    Route::post('/products/{product}', [ProductsController::class, 'update'])->name('products.update');
+    Route::delete('/products/{product}', [ProductsController::class, 'destroy'])->name('products.destroy');
 });

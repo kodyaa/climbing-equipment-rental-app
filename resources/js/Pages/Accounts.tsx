@@ -1,10 +1,10 @@
 import * as React from "react"
-import { Head, router } from "@inertiajs/react"
+import { Head, router, Deferred } from "@inertiajs/react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { AccountDialog } from "@/components/accounts/account-dialog"
-import { AccountTable } from "@/components/accounts/account-table"
+import { AccountTable, SkeletonTable } from "@/components/accounts/account-table"
 import { toast } from "sonner"
 
 interface Account {
@@ -27,7 +27,7 @@ interface PaginatedData<T> {
 }
 
 interface AccountsPageProps {
-  accounts: PaginatedData<Account>
+  accounts?: PaginatedData<Account>
   filters: {
     search: string | null
     sort: string | null
@@ -36,6 +36,7 @@ interface AccountsPageProps {
 }
 
 export default function AccountsPage({ accounts, filters }: AccountsPageProps) {
+
   // Dialog open/close state
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
 
@@ -56,17 +57,12 @@ export default function AccountsPage({ accounts, filters }: AccountsPageProps) {
   }
 
   // Delete account
-  const handleDelete = (id: number, name: string) => {
-    if (confirm(`Are you sure you want to delete ${name}?`)) {
-      router.delete(`/accounts/${id}`, {
-        onSuccess: () => {
-          toast.success(`${name} account has been deleted.`)
-        },
-        onError: () => {
-          toast.error("Failed to delete account.")
-        }
-      })
-    }
+  const handleDelete = (id: number) => {
+    router.delete(`/accounts/${id}`, {
+      onError: () => {
+        toast.error('Failed to delete account.')
+      },
+    })
   }
 
   return (
@@ -94,13 +90,17 @@ export default function AccountsPage({ accounts, filters }: AccountsPageProps) {
           </div>
 
           <div className="w-full">
-            <AccountTable
-              accounts={accounts}
-              filters={filters}
-              handleEdit={handleEdit}
-              handleDelete={handleDelete}
-              handleCreate={handleCreate}
-            />
+            <Deferred data="accounts" fallback={<SkeletonTable />}>
+              {accounts ? (
+                <AccountTable
+                  accounts={accounts}
+                  filters={filters}
+                  handleEdit={handleEdit}
+                  handleDelete={handleDelete}
+                  handleCreate={handleCreate}
+                />
+              ) : null}
+            </Deferred>
           </div>
         </div>
 
