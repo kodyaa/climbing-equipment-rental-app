@@ -1,115 +1,5 @@
 # SummitRent by Kodya
 
-**SummitRent by Kodya** is a premium mountain climbing and hiking equipment rental management application. Built on a modern web stack, it offers outdoor rental agencies a streamlined portal to manage administrative cashiers, track gear inventory, set custom rental price rates, and manage equipment status.
-
----
-
-## 🚀 Technology Stack
-
-- **Backend Framework:** Laravel 13 (PHP 8.4)
-- **Frontend SPA Layer:** Inertia.js v3 (React + TypeScript)
-- **Styling & Theme:** Tailwind CSS v4 (incorporating OKLCH colors, container queries)
-- **UI Architecture:** Custom-styled Radix & Shadcn UI components
-- **Testing Framework:** PHPUnit 12
-
----
-
-## ✨ Features
-
-### 1. Accounts Management (Cashiers & Admins)
-- **CRUD Operations:** Comprehensive system to add, edit, and delete staff accounts (Admins & Cashiers).
-- **Profile Photo Upload:** Direct image uploads processed and stored securely on Laravel's public storage disk.
-- **DiceBear Micah Avatars:** Modern **DiceBear 9.x Micah API** integration supporting automatic avatar generation seeded with the user's name:
-  - Cycle through variant seeds with Left/Right navigation.
-  - Customize mouth expressions (smile, frown, pucker, smirk, etc.) and shirt colors.
-  - Backdrop styles support linear gradients, presets, and a custom background color picker.
-- **Deferred Asynchronous Loading:** Uses Inertia v3 deferred props to render a highly detailed **Skeleton Table** mockup matching the exact columns, pagination, and filters of the real table during page load.
-- **Safety Safeguards:** Self-deletion protection prevents currently logged-in administrators from accidentally deleting their own accounts.
-
-### 2. Rental Inventory (Products)
-- **Dynamic Category Filtering:** Organize products into Tents, Backpacks, Sleeping Bags, Footwear, Cooking Gear, and Climbing Gear.
-- **Server-Side Search & Sorting:** Real-time query parameter synchronization (searching by details, sorting by rate, date created, or stock) debounced at `400ms` for seamless interaction.
-- **Stock Tracking:** Color-coded badges indicating availability (`Available`, `Maintenance`, `Out of Stock`).
-- **Asynchronous Card Grid Skeletons:** Loads product catalogs in the background using deferred props, rendering a grid of pulsing **Skeleton Card** mockups with image, header, rates, and stock blocks.
-
-### 3. Polish & Animations
-- **Circular Reveal (Ripple) Theme Toggle:** Modern theme toggling (Light/Dark/System) that performs a seamless circular reveal animation centered at the user's mouse click coordinates, powered by the **View Transitions API** (`document.startViewTransition`) and `flushSync` animations.
-- **Glitch-Free Hydration:** Syncs user theme preferences inline within the HTML `<head>` block before parsing the document body to prevent flashes of unstyled content (FOUC).
-
----
-
-## 🛠️ Installation & Setup
-
-1. **Clone & Install Dependencies:**
-   ```bash
-   composer install
-   npm install
-   ```
-
-2. **Configure Environment:**
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
-
-3. **Link Public Storage:**
-   ```bash
-   php artisan storage:link
-   ```
-
-4. **Initialize Database & Seed Data:**
-   ```bash
-   php artisan migrate:fresh --seed
-   ```
-   *Seeder loads:*
-   - Default administrators (`admin@example.com` / `password`).
-   - Cashiers with pre-configured DiceBear vector avatar URLs.
-   - 12 high-quality default climbing equipment items with real Unsplash images.
-
-5. **Start Development Servers:**
-   - Run Laravel backend:
-     ```bash
-     php artisan serve
-     ```
-   - Run Vite development server:
-     ```bash
-     npm run dev
-     ```
-
----
-
-## 🧪 Verification & Testing
-
-### Automated Feature Tests
-Execute the PHPUnit suite to verify the security rules, validation constraints, and database actions:
-```bash
-php artisan test --compact
-```
-
-### Production Compilation
-Bundle the TypeScript and Tailwind CSS assets to verify compilation and production readiness:
-```bash
-npm run build
-```
-
----
-
-## ☕ Support & Donation
-
-If you find this project useful, you can support its development by donating via Saweria:
-
-[![Donate via Saweria](https://img.shields.io/badge/Donate-Saweria-orange?style=for-the-badge&logo=coffee)](https://saweria.co/kodya)
-
-Or scan the QR code below:
-
-<p align="center">
-  <img src="public/images/saweria.jpg" width="200" alt="Saweria QR Code">
-</p>
-
----
-
-# SummitRent by Kodya (Bahasa Indonesia)
-
 **SummitRent by Kodya** adalah aplikasi manajemen penyewaan peralatan pendakian gunung dan berkemah (hiking) premium. Dibangun di atas web stack modern, aplikasi ini menawarkan portal yang efisien bagi agen penyewaan outdoor untuk mengelola akun kasir/admin, melacak inventaris alat, menetapkan tarif harga sewa, dan mengelola status peralatan.
 
 ---
@@ -148,7 +38,7 @@ Or scan the QR code below:
 
 ---
 
-## 🛠️ Instalasi & Konfigurasi
+## 🛠️ Instalasi & Konfigurasi (Tanpa Docker / Local Host)
 
 1. **Kloning & Instal Dependensi:**
    ```bash
@@ -157,10 +47,21 @@ Or scan the QR code below:
    ```
 
 2. **Konfigurasi Lingkungan (.env):**
+   Salin file `.env.example` ke `.env` dan generate application key:
    ```bash
    cp .env.example .env
    php artisan key:generate
    ```
+   Buka file `.env` yang baru dibuat dan pastikan parameter koneksi database Anda telah disesuaikan untuk menggunakan **PostgreSQL**:
+   ```env
+   DB_CONNECTION=pgsql
+   DB_HOST=127.0.0.1
+   DB_PORT=5432
+   DB_DATABASE=rentalapp
+   DB_USERNAME=rentalapp_user
+   DB_PASSWORD=rentalapp_password
+   ```
+   *(Catatan: Jika Anda menggunakan Docker Compose untuk development lokal, host database `DB_HOST` akan diatur secara otomatis ke service database `db` di dalam kontainer)*
 
 3. **Buat Tautan Penyimpanan Publik:**
    ```bash
@@ -188,6 +89,39 @@ Or scan the QR code below:
 
 ---
 
+## 🐳 Konfigurasi Docker & Docker Compose (Laravel Octane & FrankenPHP)
+
+Aplikasi ini dilengkapi dengan konfigurasi kontainerisasi siap pakai berkinerja tinggi menggunakan **Laravel Octane** bertenaga **FrankenPHP** (menggunakan base image berbasis Debian). Konfigurasi ini terbagi menjadi dua lingkungan: development dan production.
+
+### 1. Lingkungan Pengembangan Lokal (Development)
+Menjalankan aplikasi dalam **mode watch (hot-reload)** dengan volume mounting direktori lokal:
+- Bangun dan jalankan layanan:
+  ```bash
+  docker compose -f compose.dev.yaml up -d --build
+  ```
+- Lihat log kontainer secara live:
+  ```bash
+  docker compose -f compose.dev.yaml logs -f
+  ```
+- Jalankan pengujian di dalam kontainer yang sedang berjalan:
+  ```bash
+  docker compose -f compose.dev.yaml exec app php artisan test --compact
+  ```
+- Akses aplikasi secara lokal: Buka `http://localhost:8000` pada browser Anda.
+
+### 2. Lingkungan Produksi (Production)
+Menjalankan aplikasi dengan optimasi *caching* konfigurasi:
+- Bangun dan jalankan layanan produksi:
+  ```bash
+  docker compose -f compose.prod.yaml up -d --build
+  ```
+- Jalankan pengujian di dalam kontainer produksi:
+  ```bash
+  docker compose -f compose.prod.yaml exec app php artisan test --compact
+  ```
+
+---
+
 ## 🧪 Pengujian & Verifikasi
 
 ### Pengujian Fitur Otomatis
@@ -210,7 +144,7 @@ Jika Anda merasa proyek ini bermanfaat, Anda dapat mendukung pengembangannya den
 
 [![Donasi via Saweria](https://img.shields.io/badge/Donasi-Saweria-orange?style=for-the-badge&logo=coffee)](https://saweria.co/kodya)
 
-Atau scan kode QR di bawah ini:
+Or scan kode QR di bawah ini:
 
 <p align="center">
   <img src="public/images/saweria.jpg" width="200" alt="Kode QR Saweria">

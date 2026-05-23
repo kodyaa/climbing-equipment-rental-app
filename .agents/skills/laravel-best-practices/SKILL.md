@@ -181,6 +181,13 @@ Check sibling files, related controllers, models, or tests for established patte
 - No JS/CSS in Blade, no HTML in PHP classes
 - Code should be readable; comments only for config files
 
+### 20. Laravel Octane → `rules/octane.md`
+
+- Prefer `scoped` container bindings over `singleton` for request-specific services
+- Never inject request-specific services (like container, request, config) into singleton constructors
+- Never append values to static properties (prevents memory and data leaks)
+- Reset temporary service state after each request
+
 ## How to Apply
 
 Always use a sub-agent to read rule files and explore this skill's content.

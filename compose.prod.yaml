@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./docker/production/Dockerfile
+    container_name: rentalapp_app_prod
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage-data:/var/web/storage
+      - caddy-data:/data
+      - caddy-config:/config
+
+  db:
+    image: postgres:16-alpine
+    container_name: rentalapp_db_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-rentalapp}
+      POSTGRES_USER: ${DB_USERNAME:-rentalapp_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rentalapp_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-rentalapp_user} -d ${DB_DATABASE:-rentalapp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db-data:
+  storage-data:
+  caddy-data:
+  caddy-config:
