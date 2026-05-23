@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CustomersController;
 use App\Http\Controllers\ProductsController;
+use App\Http\Controllers\RentalsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -15,13 +17,25 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('dashboard');
     });
 
-    Route::get('/accounts', [AccountsController::class, 'index'])->name('accounts.index');
-    Route::post('/accounts', [AccountsController::class, 'store'])->name('accounts.store');
-    Route::post('/accounts/{user}', [AccountsController::class, 'update'])->name('accounts.update');
-    Route::delete('/accounts/{user}', [AccountsController::class, 'destroy'])->name('accounts.destroy');
+    // Owner only: user account management
+    Route::middleware('role:owner')->group(function () {
+        Route::apiResource('accounts', AccountsController::class)->except(['show'])->parameters(['accounts' => 'user']);
+    });
 
-    Route::get('/products', [ProductsController::class, 'index'])->name('products.index');
-    Route::post('/products', [ProductsController::class, 'store'])->name('products.store');
-    Route::post('/products/{product}', [ProductsController::class, 'update'])->name('products.update');
-    Route::delete('/products/{product}', [ProductsController::class, 'destroy'])->name('products.destroy');
+    // Owner only: product catalog management (kasir has read-only via controller)
+    Route::middleware('role:owner')->group(function () {
+        Route::apiResource('products', ProductsController::class)->except(['show']);
+    });
+
+    // Both owner and kasir: customer management
+    Route::middleware('role:owner|kasir')->group(function () {
+        Route::apiResource('customers', CustomersController::class)->except(['show']);
+    });
+
+    // Both owner and kasir: rental transactions (kasir = daily operations)
+    Route::middleware('role:owner|kasir')->group(function () {
+        Route::apiResource('rentals', RentalsController::class)->only(['index', 'store']);
+        Route::post('/rentals/{rental}/return', [RentalsController::class, 'return'])->name('rentals.return');
+        Route::post('/rentals/{rental}/cancel', [RentalsController::class, 'cancel'])->name('rentals.cancel');
+    });
 });

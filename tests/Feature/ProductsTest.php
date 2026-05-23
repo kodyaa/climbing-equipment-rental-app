@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Product;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -24,15 +23,31 @@ class ProductsTest extends TestCase
     }
 
     /**
-     * Test that authenticated users can view the products page.
+     * Test that an owner can view the products page.
      */
     public function test_authenticated_users_can_view_products_page(): void
     {
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->get('/products');
+        $response = $this->actingAs($this->createOwner())->get('/products');
 
         $response->assertStatus(200);
+    }
+
+    /**
+     * Test that a kasir cannot manage products (create/update/delete restricted to owner).
+     */
+    public function test_kasir_cannot_create_product(): void
+    {
+        $kasir = $this->createKasir();
+
+        $response = $this->actingAs($kasir)->post('/products', [
+            'name' => 'Unauthorized Product',
+            'category' => 'Tent',
+            'price_per_day' => 10000,
+            'stock' => 1,
+            'status' => 'available',
+        ]);
+
+        $response->assertStatus(403);
     }
 
     /**
@@ -41,10 +56,10 @@ class ProductsTest extends TestCase
     public function test_can_create_product_with_image_upload(): void
     {
         Storage::fake('public');
-        $user = User::factory()->create();
+        $owner = $this->createOwner();
         $image = UploadedFile::fake()->image('backpack.jpg');
 
-        $response = $this->actingAs($user)->post('/products', [
+        $response = $this->actingAs($owner)->post('/products', [
             'name' => 'Eiger Carrier 60L',
             'category' => 'Backpack',
             'description' => 'Comfortable backpack for long trekking.',
@@ -77,9 +92,9 @@ class ProductsTest extends TestCase
      */
     public function test_can_create_product_with_external_image_url(): void
     {
-        $user = User::factory()->create();
+        $owner = $this->createOwner();
 
-        $response = $this->actingAs($user)->post('/products', [
+        $response = $this->actingAs($owner)->post('/products', [
             'name' => 'Consina Magnum 4',
             'category' => 'Tent',
             'description' => 'A nice 4 person tent.',
@@ -103,7 +118,7 @@ class ProductsTest extends TestCase
     public function test_can_update_product(): void
     {
         Storage::fake('public');
-        $user = User::factory()->create();
+        $owner = $this->createOwner();
         $product = Product::factory()->create([
             'name' => 'Original Name',
             'category' => 'Tent',
@@ -115,7 +130,7 @@ class ProductsTest extends TestCase
 
         $newImage = UploadedFile::fake()->image('updated.jpg');
 
-        $response = $this->actingAs($user)->post("/products/{$product->id}", [
+        $response = $this->actingAs($owner)->put("/products/{$product->id}", [
             'name' => 'Updated Name',
             'category' => 'Backpack',
             'description' => 'Updated description',
@@ -145,10 +160,10 @@ class ProductsTest extends TestCase
      */
     public function test_can_delete_product(): void
     {
-        $user = User::factory()->create();
+        $owner = $this->createOwner();
         $product = Product::factory()->create();
 
-        $response = $this->actingAs($user)->delete("/products/{$product->id}");
+        $response = $this->actingAs($owner)->delete("/products/{$product->id}");
 
         $response->assertRedirect();
         $this->assertDatabaseMissing('products', [

@@ -58,7 +58,7 @@ export function AccountDialog({ isOpen, onOpenChange, editingUser }: AccountDial
   const [avatarBgColor, setAvatarBgColor] = React.useState<string>("default")
 
   // Form state using Inertia useForm
-  const { data, setData, post, errors, processing, reset } = useForm({
+  const { data, setData, post, put, errors, processing, reset } = useForm({
     name: "",
     email: "",
     phone: "",
@@ -130,10 +130,9 @@ export function AccountDialog({ isOpen, onOpenChange, editingUser }: AccountDial
     e.preventDefault()
 
     if (editingUser) {
-      // Edit Action
-      post(`/accounts/${editingUser.id}`, {
+      // Edit Action — PUT to match apiResource update route
+      put(`/accounts/${editingUser.id}`, {
         onSuccess: () => {
-          toast.success("Account updated successfully!")
           onOpenChange(false)
         },
         onError: () => {
@@ -144,7 +143,6 @@ export function AccountDialog({ isOpen, onOpenChange, editingUser }: AccountDial
       // Create Action
       post("/accounts", {
         onSuccess: () => {
-          toast.success("Account created successfully!")
           onOpenChange(false)
         },
         onError: () => {

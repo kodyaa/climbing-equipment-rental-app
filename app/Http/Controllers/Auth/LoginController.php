@@ -40,7 +40,7 @@ class LoginController extends Controller
         if (Auth::attempt([$fieldType => $credentials['login'], 'password' => $credentials['password']], $remember)) {
             $request->session()->regenerate();
 
-            return redirect()->intended('/dashboard')->with('success', 'Logged in successfully!');
+            return redirect()->intended('/dashboard');
         }
 
         throw ValidationException::withMessages([

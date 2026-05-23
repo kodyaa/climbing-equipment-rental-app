@@ -29,3 +29,8 @@ Thumbs.db
 **/caddy
 frankenphp
 frankenphp-worker.php
+
+# Antigravity / Gemini IDE files
+GEMINI.md
+.gemini
+.agents/skills

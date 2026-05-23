@@ -56,7 +56,7 @@ export function ProductDialog({
   const [imageUrlInput, setImageUrlInput] = React.useState("")
 
   // Inertia Form hook
-  const { data, setData, post, errors, processing, reset } = useForm({
+  const { data, setData, post, put, errors, processing, reset } = useForm({
     name: "",
     category: "Tent",
     description: "",
@@ -125,10 +125,9 @@ export function ProductDialog({
     e.preventDefault()
 
     if (editingProduct) {
-      // Edit mode (uses POST with method spoofing or custom route mapping)
-      post(`/products/${editingProduct.id}`, {
+      // Edit mode — PUT to match apiResource update route
+      put(`/products/${editingProduct.id}`, {
         onSuccess: () => {
-          toast.success("Product updated successfully!")
           onOpenChange(false)
         },
         onError: () => {
@@ -139,7 +138,6 @@ export function ProductDialog({
       // Create mode
       post("/products", {
         onSuccess: () => {
-          toast.success("Product created successfully!")
           onOpenChange(false)
         },
         onError: () => {

@@ -16,7 +16,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
+        // Roles & permissions must be seeded before users get assigned roles
+        $this->call(RolesAndPermissionsSeeder::class);
+
+        $admin = User::factory()->create([
             'name' => 'Kodya Admin',
             'email' => 'admin@kodya.id',
             'password' => Hash::make('password'),
@@ -24,8 +27,9 @@ class DatabaseSeeder extends Seeder
             'country' => 'id',
             'address' => 'Gedung Kodya, Jakarta, Indonesia',
         ]);
+        $admin->assignRole('owner');
 
-        User::factory()->create([
+        $cashier = User::factory()->create([
             'name' => 'Kodya Cashier',
             'email' => 'cashier@kodya.id',
             'password' => Hash::make('password'),
@@ -33,6 +37,7 @@ class DatabaseSeeder extends Seeder
             'country' => 'id',
             'address' => 'Jl. Jenderal Sudirman No. 12, Jakarta, Indonesia',
         ]);
+        $cashier->assignRole('kasir');
 
         $this->call([
             ProductSeeder::class,

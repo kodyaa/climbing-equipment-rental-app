@@ -6,14 +6,22 @@ import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 
-// Global listener for Inertia flash messages (triggers on every page navigation)
-router.on('success', (event) => {
+// Remove any previously registered listener before adding a new one.
+// window persists across Vite HMR module reloads, unlike module-level variables.
+const w = window as Window & { __flashListener?: () => void }
+if (w.__flashListener) {
+  w.__flashListener()
+}
+
+w.__flashListener = router.on('success', (event) => {
   const flash = event.detail.page.props.flash as { success?: string; error?: string } | undefined
+  // Use fixed IDs so Sonner replaces rather than duplicates if this event
+  // fires more than once (e.g. Inertia fires on both redirect + follow-up GET).
   if (flash?.success) {
-    toast.success(flash.success)
+    toast.success(flash.success, { id: 'flash-success' })
   }
   if (flash?.error) {
-    toast.error(flash.error)
+    toast.error(flash.error, { id: 'flash-error' })
   }
 })
 

@@ -23,15 +23,23 @@ class AccountsTest extends TestCase
     }
 
     /**
-     * Test that authenticated users can view the accounts page.
+     * Test that an owner can view the accounts page.
      */
     public function test_authenticated_users_can_view_accounts_page(): void
     {
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->get('/accounts');
+        $response = $this->actingAs($this->createOwner())->get('/accounts');
 
         $response->assertStatus(200);
+    }
+
+    /**
+     * Test that a kasir cannot access the accounts page (403).
+     */
+    public function test_kasir_cannot_view_accounts_page(): void
+    {
+        $response = $this->actingAs($this->createKasir())->get('/accounts');
+
+        $response->assertStatus(403);
     }
 
     /**
@@ -40,10 +48,10 @@ class AccountsTest extends TestCase
     public function test_can_create_account_with_avatar(): void
     {
         Storage::fake('public');
-        $user = User::factory()->create();
+        $owner = $this->createOwner();
         $avatar = UploadedFile::fake()->image('avatar.jpg');
 
-        $response = $this->actingAs($user)->post('/accounts', [
+        $response = $this->actingAs($owner)->post('/accounts', [
             'name' => 'John Doe',
             'email' => 'johndoe@example.com',
             'phone' => '08123456789',
@@ -77,7 +85,7 @@ class AccountsTest extends TestCase
     public function test_can_update_account(): void
     {
         Storage::fake('public');
-        $user = User::factory()->create();
+        $owner = $this->createOwner();
         $targetUser = User::factory()->create([
             'name' => 'Original Name',
             'email' => 'original@example.com',
@@ -88,7 +96,7 @@ class AccountsTest extends TestCase
 
         $newAvatar = UploadedFile::fake()->image('new-avatar.jpg');
 
-        $response = $this->actingAs($user)->post("/accounts/{$targetUser->id}", [
+        $response = $this->actingAs($owner)->put("/accounts/{$targetUser->id}", [
             'name' => 'Updated Name',
             'email' => 'updated@example.com',
             'phone' => '654321',
@@ -117,10 +125,10 @@ class AccountsTest extends TestCase
      */
     public function test_can_delete_another_account(): void
     {
-        $user = User::factory()->create();
+        $owner = $this->createOwner();
         $targetUser = User::factory()->create();
 
-        $response = $this->actingAs($user)->delete("/accounts/{$targetUser->id}");
+        $response = $this->actingAs($owner)->delete("/accounts/{$targetUser->id}");
 
         $response->assertRedirect();
         $this->assertDatabaseMissing('users', [
@@ -133,13 +141,13 @@ class AccountsTest extends TestCase
      */
     public function test_cannot_delete_own_account(): void
     {
-        $user = User::factory()->create();
+        $owner = $this->createOwner();
 
-        $response = $this->actingAs($user)->delete("/accounts/{$user->id}");
+        $response = $this->actingAs($owner)->delete("/accounts/{$owner->id}");
 
         $response->assertRedirect();
         $this->assertDatabaseHas('users', [
-            'id' => $user->id,
+            'id' => $owner->id,
         ]);
     }
 
@@ -148,9 +156,9 @@ class AccountsTest extends TestCase
      */
     public function test_can_create_account_with_dicebear_avatar(): void
     {
-        $user = User::factory()->create();
+        $owner = $this->createOwner();
 
-        $response = $this->actingAs($user)->post('/accounts', [
+        $response = $this->actingAs($owner)->post('/accounts', [
             'name' => 'Micah User',
             'email' => 'micah@example.com',
             'phone' => '08123456789',
