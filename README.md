@@ -1,58 +1,93 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SummitRent by Kodya
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**SummitRent by Kodya** is a premium mountain climbing and hiking equipment rental management application. Built on a modern web stack, it offers outdoor rental agencies a streamlined portal to manage administrative cashiers, track gear inventory, set custom rental price rates, and manage equipment status.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Technology Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Backend Framework:** Laravel 13 (PHP 8.4)
+- **Frontend SPA Layer:** Inertia.js v3 (React + TypeScript)
+- **Styling & Theme:** Tailwind CSS v4 (incorporating OKLCH colors, container queries)
+- **UI Architecture:** Custom-styled Radix & Shadcn UI components
+- **Testing Framework:** PHPUnit 12
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ✨ Features
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Accounts Management (Cashiers & Admins)
+- **CRUD Operations:** Comprehensive system to add, edit, and delete staff accounts (Admins & Cashiers).
+- **Profile Photo Upload:** Direct image uploads processed and stored securely on Laravel's public storage disk.
+- **DiceBear Micah Avatars:** Modern **DiceBear 9.x Micah API** integration supporting automatic avatar generation seeded with the user's name:
+  - Cycle through variant seeds with Left/Right navigation.
+  - Customize mouth expressions (smile, frown, pucker, smirk, etc.) and shirt colors.
+  - Backdrop styles support linear gradients, presets, and a custom background color picker.
+- **Deferred Asynchronous Loading:** Uses Inertia v3 deferred props to render a highly detailed **Skeleton Table** mockup matching the exact columns, pagination, and filters of the real table during page load.
+- **Safety Safeguards:** Self-deletion protection prevents currently logged-in administrators from accidentally deleting their own accounts.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. Rental Inventory (Products)
+- **Dynamic Category Filtering:** Organize products into Tents, Backpacks, Sleeping Bags, Footwear, Cooking Gear, and Climbing Gear.
+- **Server-Side Search & Sorting:** Real-time query parameter synchronization (searching by details, sorting by rate, date created, or stock) debounced at `400ms` for seamless interaction.
+- **Stock Tracking:** Color-coded badges indicating availability (`Available`, `Maintenance`, `Out of Stock`).
+- **Asynchronous Card Grid Skeletons:** Loads product catalogs in the background using deferred props, rendering a grid of pulsing **Skeleton Card** mockups with image, header, rates, and stock blocks.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### 3. Polish & Animations
+- **Circular Reveal (Ripple) Theme Toggle:** Modern theme toggling (Light/Dark/System) that performs a seamless circular reveal animation centered at the user's mouse click coordinates, powered by the **View Transitions API** (`document.startViewTransition`) and `flushSync` animations.
+- **Glitch-Free Hydration:** Syncs user theme preferences inline within the HTML `<head>` block before parsing the document body to prevent flashes of unstyled content (FOUC).
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 🛠️ Installation & Setup
 
+1. **Clone & Install Dependencies:**
+   ```bash
+   composer install
+   npm install
+   ```
+
+2. **Configure Environment:**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+3. **Link Public Storage:**
+   ```bash
+   php artisan storage:link
+   ```
+
+4. **Initialize Database & Seed Data:**
+   ```bash
+   php artisan migrate:fresh --seed
+   ```
+   *Seeder loads:*
+   - Default administrators (`admin@example.com` / `password`).
+   - Cashiers with pre-configured DiceBear vector avatar URLs.
+   - 12 high-quality default climbing equipment items with real Unsplash images.
+
+5. **Start Development Servers:**
+   - Run Laravel backend:
+     ```bash
+     php artisan serve
+     ```
+   - Run Vite development server:
+     ```bash
+     npm run dev
+     ```
+
+---
+
+## 🧪 Verification & Testing
+
+### Automated Feature Tests
+Execute the PHPUnit suite to verify the security rules, validation constraints, and database actions:
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan test --compact
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Production Compilation
+Bundle the TypeScript and Tailwind CSS assets to verify compilation and production readiness:
+```bash
+npm run build
+```
