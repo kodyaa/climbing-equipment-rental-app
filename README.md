@@ -103,7 +103,7 @@ If you find this project useful, you can support its development by donating via
 Or scan the QR code below:
 
 <p align="center">
-  <img src="https://saweria.co/widgets/qr?streamKey=bbe11f01fd417bbff6b2b8a7de023e58" width="200" alt="Saweria QR Code">
+  <img src="public/images/saweria.png" width="200" alt="Saweria QR Code">
 </p>
 
 ---
@@ -213,5 +213,5 @@ Jika Anda merasa proyek ini bermanfaat, Anda dapat mendukung pengembangannya den
 Atau scan kode QR di bawah ini:
 
 <p align="center">
-  <img src="https://saweria.co/widgets/qr?streamKey=bbe11f01fd417bbff6b2b8a7de023e58" width="200" alt="Kode QR Saweria">
+  <img src="public/images/saweria.png" width="200" alt="Kode QR Saweria">
 </p>
