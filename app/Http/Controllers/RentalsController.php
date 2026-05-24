@@ -14,9 +14,32 @@ use Inertia\Response;
 class RentalsController extends Controller
 {
     /**
-     * Display a listing of rentals (kasir dashboard).
+     * POS page — display available products and customers for creating a new rental.
      */
-    public function index(Request $request): Response
+    public function index(): Response
+    {
+        $availableProducts = Product::query()
+            ->where('status', 'available')
+            ->where('stock', '>', 0)
+            ->select(['id', 'name', 'category', 'price_per_day', 'stock', 'image'])
+            ->orderBy('name')
+            ->get();
+
+        $customers = Customer::query()
+            ->select(['id', 'name', 'phone'])
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Rentals', [
+            'availableProducts' => $availableProducts,
+            'customers' => $customers,
+        ]);
+    }
+
+    /**
+     * Rental history page — paginated list of all transactions with filters.
+     */
+    public function history(Request $request): Response
     {
         $search = $request->input('search');
         $status = $request->input('status');
@@ -41,28 +64,11 @@ class RentalsController extends Controller
             })
             ->when($status, fn ($q, $s) => $q->where('status', $s))
             ->orderBy($sort, $direction)
-            ->paginate(10)
+            ->paginate(15)
             ->withQueryString();
 
-        // Available products for the rental form
-        $availableProducts = Inertia::defer(fn () => Product::query()
-            ->where('status', 'available')
-            ->where('stock', '>', 0)
-            ->select(['id', 'name', 'category', 'price_per_day', 'stock'])
-            ->orderBy('name')
-            ->get()
-        );
-
-        $customers = Inertia::defer(fn () => Customer::query()
-            ->select(['id', 'name', 'phone'])
-            ->orderBy('name')
-            ->get()
-        );
-
-        return Inertia::render('Rentals', [
+        return Inertia::render('RentalsHistory', [
             'rentals' => Inertia::defer(fn () => $rentals),
-            'availableProducts' => $availableProducts,
-            'customers' => $customers,
             'filters' => [
                 'search' => $search,
                 'status' => $status,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,6 +29,7 @@ class CustomersController extends Controller
         }
 
         $customers = Customer::query()
+            ->with(['wilayah'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -60,9 +62,16 @@ class CustomersController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20'],
             'id_number' => ['nullable', 'string', 'max:30'],
+            'identity_photo' => ['nullable', 'file', 'image', 'max:2048'],
             'email' => ['nullable', 'email', 'max:255'],
+            'wilayah_kode' => ['nullable', 'string', 'exists:wilayah,kode'],
             'address' => ['nullable', 'string'],
         ]);
+
+        if ($request->hasFile('identity_photo')) {
+            $path = $request->file('identity_photo')->store('identities', 'public');
+            $validated['identity_photo'] = '/storage/'.$path;
+        }
 
         Customer::create($validated);
 
@@ -78,9 +87,16 @@ class CustomersController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20'],
             'id_number' => ['nullable', 'string', 'max:30'],
+            'identity_photo' => ['nullable'],
             'email' => ['nullable', 'email', 'max:255'],
+            'wilayah_kode' => ['nullable', 'string', 'exists:wilayah,kode'],
             'address' => ['nullable', 'string'],
         ]);
+
+        if ($request->hasFile('identity_photo')) {
+            $path = $request->file('identity_photo')->store('identities', 'public');
+            $validated['identity_photo'] = '/storage/'.$path;
+        }
 
         $customer->update($validated);
 
@@ -96,5 +112,30 @@ class CustomersController extends Controller
         $customer->delete();
 
         return redirect()->back()->with('success', "{$name} has been deleted.");
+    }
+
+    /**
+     * Check if a customer ID number (NIK) already exists.
+     */
+    public function checkIdNumber(Request $request): JsonResponse
+    {
+        $idNumber = $request->query('id_number');
+        $excludeId = $request->query('exclude_id');
+
+        if (! $idNumber) {
+            return response()->json(['exists' => false]);
+        }
+
+        $existingCustomer = Customer::query()
+            ->where('id_number', $idNumber)
+            ->when($excludeId, function ($query, $excludeId) {
+                $query->where('id', '!=', $excludeId);
+            })
+            ->first();
+
+        return response()->json([
+            'exists' => $existingCustomer !== null,
+            'name' => $existingCustomer?->name,
+        ]);
     }
 }

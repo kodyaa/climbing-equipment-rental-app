@@ -38,16 +38,8 @@ import {
   LayersIcon,
 } from "lucide-react"
 
-interface Product {
-  id: number
-  name: string
-  category: string
-  description: string | null
-  price_per_day: number | string
-  stock: number
-  status: string
-  image: string | null
-}
+import { Product } from "@/types/product"
+import { formatCurrency } from "@/lib/format"
 
 interface ProductCardProps {
   product: Product
@@ -56,15 +48,6 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
-  const formatPrice = (value: number | string) => {
-    const num = typeof value === "string" ? parseFloat(value) : value
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(num)
-  }
-
   const getStatusDetails = (status: string) => {
     switch (status) {
       case "available":
@@ -193,7 +176,7 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Daily Rate</span>
           <span className="text-sm font-extrabold text-foreground tabular-nums">
-            {formatPrice(product.price_per_day)}{" "}
+            {formatCurrency(product.price_per_day)}{" "}
             <span className="text-[10px] font-normal text-muted-foreground">/ day</span>
           </span>
         </div>

@@ -17,8 +17,11 @@ return new class extends Migration
             $table->string('phone', 20);
             $table->string('id_number', 30)->nullable()->comment('KTP / SIM / Passport number');
             $table->string('email')->nullable();
+            $table->string('wilayah_kode', 13)->nullable();
             $table->text('address')->nullable();
             $table->timestamps();
+
+            $table->foreign('wilayah_kode')->references('kode')->on('wilayah')->nullOnDelete();
         });
     }
 
