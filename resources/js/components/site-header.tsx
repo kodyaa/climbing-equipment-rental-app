@@ -3,6 +3,7 @@ import { usePage } from "@inertiajs/react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
+import { AgentChatDialog } from "@/components/agents/agent-chat-dialog"
 
 export function SiteHeader() {
   const { url } = usePage()
@@ -23,9 +24,13 @@ export function SiteHeader() {
           />
           <h1 className="text-base font-medium">{pageTitle}</h1>
         </div>
-        <ModeToggle />
+        <div className="flex items-center gap-2">
+          <AgentChatDialog />
+          <ModeToggle />
+        </div>
       </div>
     </header>
   )
 }
+
 
