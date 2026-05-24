@@ -152,6 +152,81 @@ Runs the app with optimized configurations caching:
 
 ---
 
+## ⚡ Laravel Boost Integration (Model Context Protocol)
+
+This application integrates **Laravel Boost** (`laravel/boost`) in the development environment. Laravel Boost is a developer AI helper that securely exposes a **Model Context Protocol (MCP)** API, allowing AI assistants (like Antigravity) to instantly read database schemas, execute interactive database queries, read the latest error logs, and perform semantic document searches.
+
+### Step-by-Step Installation & Configuration:
+
+1. **Install Package as a Development Dependency:**
+   Ensure the package is installed (pre-configured in `composer.json` under `"require-dev"`). If not:
+   ```bash
+   composer require laravel/boost --dev
+   ```
+
+2. **Install Dependencies:**
+   ```bash
+   composer install
+   ```
+
+3. **Start the Local Development Server:**
+   Laravel Boost registers automatically via package auto-discovery when your dev server runs:
+   ```bash
+   php artisan serve
+   ```
+   *Your IDE AI assistant will automatically discover the local server at `http://127.0.0.1:8000` and unlock the lazy-loaded MCP toolset (such as `database-schema`, `database-query`, `read-log-entries`, and `search-docs`) to help you build and debug code instantly!*
+
+---
+
+## 🧠 Agentic AI Skills (Shadcn/UI)
+
+This application supports **Agentic AI Skills** to streamline UI design, styling, and composition using standardized instruction sets. To activate Shadcn UI design capabilities for your AI assistant:
+
+Run the following command in your local terminal:
+```bash
+npx skills add shadcn/ui
+```
+*This command will install the Shadcn/UI instruction sets, templates, and component references into the local `.agents/skills/` directory, allowing your AI coding assistant to automatically build and customize premium interfaces.*
+
+---
+
+## ⚡ Shadcn MCP Server Integration (Model Context Protocol)
+
+This application supports the **Shadcn MCP Server**, which allows your AI assistant (such as Antigravity) to interact directly with component registries (such as the default `shadcn/ui` registry or private company libraries).
+
+By enabling the Shadcn MCP server, your AI assistant gains direct access to browse, search, and install components directly into your codebase using natural language prompts (e.g., *"Add the button, dialog, and card components to my project"*).
+
+### How to Connect Shadcn MCP Server to Antigravity IDE:
+
+1. **Run Client Initialization (Optional):**
+   ```bash
+   npx shadcn@latest mcp init
+   ```
+
+2. **Verify Antigravity Configuration (`.gemini/settings.json`):**
+   Ensure that the `.gemini/settings.json` file in your project has registered the `shadcn` server as follows:
+   ```json
+   {
+       "mcpServers": {
+           "laravel-boost": {
+               "command": "php",
+               "args": ["artisan", "boost:mcp"]
+           },
+           "shadcn": {
+               "command": "npx",
+               "args": ["shadcn@latest", "mcp"]
+            }
+       }
+   }
+   ```
+
+3. **Restart Your IDE AI Assistant** and try typing prompts like:
+   - *"Show me all available components in the shadcn registry"*
+   - *"Add the button, dialog, and card components to my project"*
+   - *"Create a contact form using components from the shadcn registry"*
+
+---
+
 ## 🧪 Verification & Testing
 
 ### Automated Feature Tests
