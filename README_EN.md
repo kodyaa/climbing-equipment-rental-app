@@ -95,8 +95,8 @@
    php artisan migrate:fresh --seed
    ```
    *Seeder loads:*
-   - Default administrators (`admin@example.com` / `password`).
-   - Default cashier account (`adol@kontol.com` / `password`) equipped with cashier-level Spatie permissions.
+   - Default administrators (`admin@kodya.id` / `password`).
+   - Default cashier account (`cashier@kodya.id` / `password`) equipped with cashier-level Spatie permissions.
    - 20 realistic Indonesian customer records mapped to detailed administrative region codes.
    - 12 high-quality default climbing equipment items with real Unsplash images.
 
