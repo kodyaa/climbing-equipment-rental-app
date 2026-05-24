@@ -17,6 +17,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'expected_return_date',
     'returned_at',
     'total_price',
+    'discount',
+    'amount_paid',
+    'change_returned',
+    'payment_type',
     'status',
     'notes',
 ])]
@@ -37,6 +41,9 @@ class Rental extends Model
             'expected_return_date' => 'date',
             'returned_at' => 'datetime',
             'total_price' => 'decimal:2',
+            'discount' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
+            'change_returned' => 'decimal:2',
         ];
     }
 

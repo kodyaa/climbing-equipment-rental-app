@@ -11,6 +11,9 @@ interface UseCustomerFormProps {
 
 export function useCustomerForm({ editingCustomer, onOpenChange, resetRegion }: UseCustomerFormProps) {
   const [idNumberError, setIdNumberError] = React.useState("")
+  const [isIdChecking, setIsIdChecking] = React.useState(false)
+  const [emailError, setEmailError] = React.useState("")
+  const [isEmailChecking, setIsEmailChecking] = React.useState(false)
 
   const { data, setData, post, errors, processing, reset } = useForm({
     name: "",
@@ -38,6 +41,10 @@ export function useCustomerForm({ editingCustomer, onOpenChange, resetRegion }: 
       })
     } else {
       reset()
+      setIdNumberError("")
+      setIsIdChecking(false)
+      setEmailError("")
+      setIsEmailChecking(false)
     }
   }, [editingCustomer])
 
@@ -45,8 +52,11 @@ export function useCustomerForm({ editingCustomer, onOpenChange, resetRegion }: 
   React.useEffect(() => {
     if (!data.id_number) {
       setIdNumberError("")
+      setIsIdChecking(false)
       return
     }
+
+    setIsIdChecking(true)
 
     const timer = setTimeout(() => {
       const excludeParam = editingCustomer ? `&exclude_id=${editingCustomer.id}` : ""
@@ -60,16 +70,68 @@ export function useCustomerForm({ editingCustomer, onOpenChange, resetRegion }: 
           }
         })
         .catch(() => setIdNumberError(""))
+        .finally(() => {
+          setIsIdChecking(false)
+        })
     }, 500)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      setIsIdChecking(false)
+    }
   }, [data.id_number, editingCustomer])
+
+  // Live Email existence check with 500ms debounce
+  React.useEffect(() => {
+    if (!data.email) {
+      setEmailError("")
+      setIsEmailChecking(false)
+      return
+    }
+
+    // Basic email format check before calling API
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)
+    if (!isEmailValid) {
+      setEmailError("Invalid email address format.")
+      setIsEmailChecking(false)
+      return
+    }
+
+    setIsEmailChecking(true)
+
+    const timer = setTimeout(() => {
+      const excludeParam = editingCustomer ? `&exclude_id=${editingCustomer.id}` : ""
+      fetch(`/customers/check-email?email=${encodeURIComponent(data.email)}${excludeParam}`)
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.exists) {
+            setEmailError(`This email is already registered under "${resData.name}"`)
+          } else {
+            setEmailError("")
+          }
+        })
+        .catch(() => setEmailError(""))
+        .finally(() => {
+          setIsEmailChecking(false)
+        })
+    }, 500)
+
+    return () => {
+      clearTimeout(timer)
+      setIsEmailChecking(false)
+    }
+  }, [data.email, editingCustomer])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (idNumberError) {
       toast.error("Please fix the NIK registration error first.")
+      return
+    }
+
+    if (emailError) {
+      toast.error("Please fix the email registration error first.")
       return
     }
 
@@ -99,6 +161,10 @@ export function useCustomerForm({ editingCustomer, onOpenChange, resetRegion }: 
   const handleCancel = () => {
     reset()
     resetRegion()
+    setIdNumberError("")
+    setIsIdChecking(false)
+    setEmailError("")
+    setIsEmailChecking(false)
     onOpenChange(false)
   }
 
@@ -108,6 +174,9 @@ export function useCustomerForm({ editingCustomer, onOpenChange, resetRegion }: 
     errors,
     processing,
     idNumberError,
+    isIdChecking,
+    emailError,
+    isEmailChecking,
     handleSubmit,
     handleCancel,
   }

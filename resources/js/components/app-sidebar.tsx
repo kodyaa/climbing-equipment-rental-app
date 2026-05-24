@@ -34,7 +34,7 @@ const data = {
     },
     {
       title: "Analytics",
-      url: "#",
+      url: "/analytics",
       icon: (<ChartBarIcon />),
     },
     {

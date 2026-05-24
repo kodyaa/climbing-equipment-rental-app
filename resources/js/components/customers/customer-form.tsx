@@ -7,6 +7,7 @@ import { Customer } from "@/types/customer"
 import { Wilayah } from "@/types/wilayah"
 import { CustomerImageUpload } from "./customer-image-upload"
 import { CustomerRegionFields } from "./customer-region-fields"
+import { Loader2, Check } from "lucide-react"
 
 interface CustomerFormProps {
   editingCustomer: Customer | null
@@ -24,6 +25,9 @@ interface CustomerFormProps {
   errors: Record<string, string>
   processing: boolean
   idNumberError: string
+  isIdChecking: boolean
+  emailError: string
+  isEmailChecking: boolean
   handleSubmit: (e: React.FormEvent) => void
   handleCancel: () => void
   regionData: {
@@ -50,6 +54,9 @@ export function CustomerForm({
   errors,
   processing,
   idNumberError,
+  isIdChecking,
+  emailError,
+  isEmailChecking,
   handleSubmit,
   handleCancel,
   regionData,
@@ -82,35 +89,60 @@ export function CustomerForm({
                   placeholder="e.g. 081234567890"
                   required
                   value={data.phone}
-                  onChange={(e) => setData("phone", e.target.value)}
+                  onChange={(e) => setData("phone", e.target.value.replace(/[^\d+]/g, ""))}
+                  maxLength={15}
                 />
                 <FieldError>{errors.phone}</FieldError>
               </Field>
 
               <Field className="col-span-2 sm:col-span-1" data-invalid={!!idNumberError}>
                 <FieldLabel htmlFor="cust-id-number">KTP / Passport ID</FieldLabel>
-                <Input
-                  id="cust-id-number"
-                  type="text"
-                  placeholder="16-digit ID number"
-                  aria-invalid={!!idNumberError}
-                  value={data.id_number}
-                  onChange={(e) => setData("id_number", e.target.value)}
-                />
+                <div className="relative flex items-center">
+                  <Input
+                    id="cust-id-number"
+                    type="text"
+                    placeholder="16-digit ID number"
+                    aria-invalid={!!idNumberError}
+                    value={data.id_number}
+                    onChange={(e) => setData("id_number", e.target.value.replace(/\D/g, ""))}
+                    className="pr-9"
+                    maxLength={16}
+                  />
+                  <div className="absolute right-3 flex items-center pointer-events-none">
+                    {isIdChecking && (
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    )}
+                    {!isIdChecking && data.id_number && !idNumberError && (
+                      <Check className="size-4 text-emerald-500 font-bold" strokeWidth={3} />
+                    )}
+                  </div>
+                </div>
                 <FieldError>{idNumberError || errors.id_number}</FieldError>
               </Field>
             </div>
 
-            <Field>
+            <Field className="" data-invalid={!!emailError}>
               <FieldLabel htmlFor="cust-email">Email Address</FieldLabel>
-              <Input
-                id="cust-email"
-                type="email"
-                placeholder="e.g. budi@example.com"
-                value={data.email}
-                onChange={(e) => setData("email", e.target.value)}
-              />
-              <FieldError>{errors.email}</FieldError>
+              <div className="relative flex items-center">
+                <Input
+                  id="cust-email"
+                  type="email"
+                  placeholder="e.g. budi@example.com"
+                  aria-invalid={!!emailError}
+                  value={data.email}
+                  onChange={(e) => setData("email", e.target.value)}
+                  className="pr-9"
+                />
+                <div className="absolute right-3 flex items-center pointer-events-none">
+                  {isEmailChecking && (
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  )}
+                  {!isEmailChecking && data.email && !emailError && (
+                    <Check className="size-4 text-emerald-500 font-bold" strokeWidth={3} />
+                  )}
+                </div>
+              </div>
+              <FieldError>{emailError || errors.email}</FieldError>
             </Field>
 
             <Field>

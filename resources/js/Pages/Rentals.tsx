@@ -9,6 +9,7 @@ import { OrderCart } from "@/components/cashier/order-cart"
 import type { CartItem } from "@/components/cashier/order-cart"
 import { Product } from "@/types/product"
 import { Customer } from "@/types/customer"
+import { CustomerDialog } from "@/components/customers/customer-dialog"
 
 interface RentalsPageProps {
   availableProducts?: Product[]
@@ -45,6 +46,23 @@ export default function RentalsPage({
   const [notes, setNotes] = React.useState("")
   const [processing, setProcessing] = React.useState(false)
   const [errors, setErrors] = React.useState<Record<string, string>>({})
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = React.useState(false)
+
+  const [discount, setDiscount] = React.useState(0)
+  const [amountPaid, setAmountPaid] = React.useState(0)
+  const [paymentType, setPaymentType] = React.useState<"cash" | "qris">("cash")
+
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.pricePerDay * item.quantity * item.durationDays,
+    0
+  )
+  const grandTotal = Math.max(0, subtotal - discount)
+
+  React.useEffect(() => {
+    if (paymentType === "qris") {
+      setAmountPaid(grandTotal)
+    }
+  }, [paymentType, grandTotal])
 
   const cartProductIds = cartItems.map((i) => i.productId)
 
@@ -119,6 +137,8 @@ export default function RentalsPage({
     setProcessing(true)
     setErrors({})
 
+    const changeReturned = Math.max(0, amountPaid - grandTotal)
+
     router.post(
       "/rentals",
       {
@@ -126,6 +146,10 @@ export default function RentalsPage({
         rental_date: rentalDate,
         expected_return_date: expectedReturnDate,
         notes,
+        discount,
+        amount_paid: amountPaid,
+        change_returned: changeReturned,
+        payment_type: paymentType,
         items: cartItems.map((item) => ({
           product_id: item.productId,
           quantity: item.quantity,
@@ -138,6 +162,9 @@ export default function RentalsPage({
           setCustomerId("")
           setExpectedReturnDate(addDays(today, 1))
           setNotes("")
+          setDiscount(0)
+          setAmountPaid(0)
+          setPaymentType("cash")
           setProcessing(false)
           toast.success("Rental transaction created successfully!")
         },
@@ -201,10 +228,22 @@ export default function RentalsPage({
               onUpdateItem={handleUpdateItem}
               onRemoveItem={handleRemoveItem}
               onCheckout={handleCheckout}
+              onAddCustomerClick={() => setIsCustomerDialogOpen(true)}
+              discount={discount}
+              amountPaid={amountPaid}
+              paymentType={paymentType}
+              onDiscountChange={setDiscount}
+              onAmountPaidChange={setAmountPaid}
+              onPaymentTypeChange={setPaymentType}
             />
           </div>
         </div>
       </SidebarInset>
+      <CustomerDialog
+        isOpen={isCustomerDialogOpen}
+        onOpenChange={setIsCustomerDialogOpen}
+        editingCustomer={null}
+      />
     </SidebarProvider>
   )
 }

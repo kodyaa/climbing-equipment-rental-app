@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -24,7 +24,26 @@ import {
 } from "lucide-react"
 
 import { Customer } from "@/types/customer"
-import { formatCurrency } from "@/lib/format"
+import { formatCurrency, formatDate, formatNumber, parseNumber } from "@/lib/format"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils"
+import { parseDate, getLocalTimeZone, CalendarDate } from "@internationalized/date"
+
+// Local date helpers using @internationalized/date to parse/format YYYY-MM-DD cleanly without timezone shifts
+const parseLocalDate = (dateStr: string | null | undefined): Date | undefined => {
+  if (!dateStr) return undefined
+  try {
+    return parseDate(dateStr).toDate(getLocalTimeZone())
+  } catch (e) {
+    return undefined
+  }
+}
+
+const formatLocalDate = (date: Date | undefined): string => {
+  if (!date) return ""
+  return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()).toString()
+}
 
 export interface CartItem {
   productId: number
@@ -51,6 +70,13 @@ interface OrderCartProps {
   onUpdateItem: (productId: number, field: "quantity" | "durationDays", value: number) => void
   onRemoveItem: (productId: number) => void
   onCheckout: () => void
+  onAddCustomerClick: () => void
+  discount: number
+  amountPaid: number
+  paymentType: "cash" | "qris"
+  onDiscountChange: (val: number) => void
+  onAmountPaidChange: (val: number) => void
+  onPaymentTypeChange: (val: "cash" | "qris") => void
 }
 
 function StepInput({
@@ -103,13 +129,33 @@ export function OrderCart({
   onUpdateItem,
   onRemoveItem,
   onCheckout,
+  onAddCustomerClick,
+  discount,
+  amountPaid,
+  paymentType,
+  onDiscountChange,
+  onAmountPaidChange,
+  onPaymentTypeChange,
 }: OrderCartProps) {
   const today = new Date().toISOString().split("T")[0]
-  const total = items.reduce(
+  const subtotal = items.reduce(
     (sum, item) => sum + item.pricePerDay * item.quantity * item.durationDays,
     0
   )
-  const canCheckout = items.length > 0 && !!customerId && !!rentalDate && !!expectedReturnDate && !processing
+  const grandTotal = Math.max(0, subtotal - discount)
+  const changeReturned = amountPaid - grandTotal
+
+  const canCheckout = items.length > 0 &&
+    !!customerId &&
+    !!rentalDate &&
+    !!expectedReturnDate &&
+    !processing &&
+    (paymentType === "qris" || amountPaid >= grandTotal)
+
+  const parsedRentalDate = React.useMemo(() => parseLocalDate(rentalDate), [rentalDate])
+  const parsedReturnDate = React.useMemo(() => parseLocalDate(expectedReturnDate), [expectedReturnDate])
+  const parsedMinRental = React.useMemo(() => parseLocalDate(today), [today])
+  const parsedMinReturn = React.useMemo(() => parseLocalDate(rentalDate || today), [rentalDate, today])
 
   return (
     <div className="flex flex-col h-full border-l bg-card/60 backdrop-blur-sm">
@@ -130,22 +176,34 @@ export function OrderCart({
             <FieldLabel className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground mb-1.5">
               <UserIcon className="size-3" /> Customer
             </FieldLabel>
-            <Select value={customerId} onValueChange={onCustomerChange}>
-              <SelectTrigger
-                id="pos-customer-select"
-                className="h-9 text-xs w-full"
+            <div className="flex gap-1.5 items-center">
+              <Select value={customerId} onValueChange={onCustomerChange}>
+                <SelectTrigger
+                  id="pos-customer-select"
+                  className="h-9 text-xs flex-1"
+                >
+                  <SelectValue placeholder="Select customer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)} className="text-xs">
+                      <span className="font-medium">{c.name}</span>
+                      <span className="text-muted-foreground ml-1">— {c.phone}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0 cursor-pointer"
+                onClick={onAddCustomerClick}
+                title="Add new customer"
               >
-                <SelectValue placeholder="Select customer..." />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)} className="text-xs">
-                    <span className="font-medium">{c.name}</span>
-                    <span className="text-muted-foreground ml-1">— {c.phone}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <PlusIcon className="size-4" />
+              </Button>
+            </div>
             {errors.customer_id && (
               <FieldError className="text-xs">{errors.customer_id}</FieldError>
             )}
@@ -158,14 +216,38 @@ export function OrderCart({
             <FieldLabel className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mb-1">
               <CalendarIcon className="size-3" /> From
             </FieldLabel>
-            <Input
-              id="pos-rental-date"
-              type="date"
-              value={rentalDate}
-              min={today}
-              onChange={(e) => onRentalDateChange(e.target.value)}
-              className="h-8 text-xs"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="pos-rental-date-trigger"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-8 text-xs bg-background px-2.5",
+                    !rentalDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-1.5 size-3 text-muted-foreground" />
+                  {rentalDate ? formatDate(rentalDate, "short") : <span>Pick date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={parsedRentalDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      onRentalDateChange(formatLocalDate(date))
+                    }
+                  }}
+                  disabled={(date) => {
+                    if (!parsedMinRental) return false
+                    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+                    const t = new Date(parsedMinRental.getFullYear(), parsedMinRental.getMonth(), parsedMinRental.getDate())
+                    return d < t
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
             {errors.rental_date && (
               <FieldError className="text-xs">{errors.rental_date}</FieldError>
             )}
@@ -174,14 +256,38 @@ export function OrderCart({
             <FieldLabel className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mb-1">
               <CalendarIcon className="size-3" /> Until
             </FieldLabel>
-            <Input
-              id="pos-return-date"
-              type="date"
-              value={expectedReturnDate}
-              min={rentalDate || today}
-              onChange={(e) => onExpectedReturnDateChange(e.target.value)}
-              className="h-8 text-xs"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="pos-return-date-trigger"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-8 text-xs bg-background px-2.5",
+                    !expectedReturnDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-1.5 size-3 text-muted-foreground" />
+                  {expectedReturnDate ? formatDate(expectedReturnDate, "short") : <span>Pick date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={parsedReturnDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      onExpectedReturnDateChange(formatLocalDate(date))
+                    }
+                  }}
+                  disabled={(date) => {
+                    if (!parsedMinReturn) return false
+                    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+                    const t = new Date(parsedMinReturn.getFullYear(), parsedMinReturn.getMonth(), parsedMinReturn.getDate())
+                    return d < t
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
             {errors.expected_return_date && (
               <FieldError className="text-xs">{errors.expected_return_date}</FieldError>
             )}
@@ -283,6 +389,86 @@ export function OrderCart({
             />
           </div>
         )}
+
+        {/* ── Payment Details ─────────────────── */}
+        {items.length > 0 && (
+          <div className="px-4 py-3.5 border-t space-y-3">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Payment Details
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {/* Discount */}
+              <Field>
+                <FieldLabel className="text-[10px] font-semibold text-muted-foreground mb-1 block">
+                  Discount (Rp)
+                </FieldLabel>
+                <Input
+                  type="text"
+                  placeholder="0"
+                  value={formatNumber(discount)}
+                  onChange={(e) => onDiscountChange(parseNumber(e.target.value))}
+                  className="h-8 text-xs bg-background"
+                />
+                {errors.discount && (
+                  <FieldError className="text-[10px]">{errors.discount}</FieldError>
+                )}
+              </Field>
+
+              {/* Payment Type */}
+              <Field>
+                <FieldLabel className="text-[10px] font-semibold text-muted-foreground mb-1 block">
+                  Method
+                </FieldLabel>
+                <Select value={paymentType} onValueChange={(val) => onPaymentTypeChange(val as "cash" | "qris")}>
+                  <SelectTrigger className="h-8 text-xs w-full bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash" className="text-xs">Cash</SelectItem>
+                    <SelectItem value="qris" className="text-xs">QRIS</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.payment_type && (
+                  <FieldError className="text-[10px]">{errors.payment_type}</FieldError>
+                )}
+              </Field>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {/* Amount Paid */}
+              <Field>
+                <FieldLabel className="text-[10px] font-semibold text-muted-foreground mb-1 block">
+                  Amount Paid (Rp)
+                </FieldLabel>
+                <Input
+                  type="text"
+                  placeholder="0"
+                  value={formatNumber(amountPaid)}
+                  onChange={(e) => onAmountPaidChange(parseNumber(e.target.value))}
+                  disabled={paymentType === "qris"}
+                  className="h-8 text-xs bg-background"
+                />
+                {errors.amount_paid && (
+                  <FieldError className="text-[10px]">{errors.amount_paid}</FieldError>
+                )}
+              </Field>
+
+              {/* Change Return */}
+              <Field>
+                <FieldLabel className="text-[10px] font-semibold text-muted-foreground mb-1 block">
+                  Change Return
+                </FieldLabel>
+                <div className={cn(
+                  "h-8 flex items-center px-2.5 rounded-md border border-input bg-muted/40 text-xs font-semibold tabular-nums",
+                  changeReturned < 0 ? "text-destructive font-bold" : "text-foreground/80"
+                )}>
+                  {changeReturned < 0 ? `-${formatCurrency(Math.abs(changeReturned))}` : formatCurrency(changeReturned)}
+                </div>
+              </Field>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Footer: Total + Checkout ─────────── */}
@@ -303,13 +489,26 @@ export function OrderCart({
 
         <Separator />
 
+        {discount > 0 && (
+          <div className="flex justify-between items-center text-xs text-muted-foreground">
+            <span>Subtotal</span>
+            <span className="tabular-nums">{formatCurrency(subtotal)}</span>
+          </div>
+        )}
+        {discount > 0 && (
+          <div className="flex justify-between items-center text-xs text-destructive">
+            <span>Discount</span>
+            <span className="tabular-nums">-{formatCurrency(discount)}</span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <ReceiptIcon className="size-3.5" />
             <span>Total</span>
           </div>
           <span className="text-xl font-bold text-primary tabular-nums">
-            {formatCurrency(total)}
+            {formatCurrency(grandTotal)}
           </span>
         </div>
 
@@ -331,6 +530,11 @@ export function OrderCart({
         {(!rentalDate || !expectedReturnDate) && items.length > 0 && customerId && (
           <p className="text-[10px] text-center text-muted-foreground">
             Please set rental and return dates.
+          </p>
+        )}
+        {amountPaid < grandTotal && paymentType === "cash" && items.length > 0 && customerId && (
+          <p className="text-[10px] text-center text-destructive font-medium">
+            Insufficient payment amount. Remaining: {formatCurrency(grandTotal - amountPaid)}
           </p>
         )}
       </div>

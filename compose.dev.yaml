@@ -35,13 +35,26 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-rentalapp_user} -d ${DB_DATABASE:-rentalapp}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-rentalapp_user} -d ${DB_DATABASE:-rentalapp}" ]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rentalapp_ollama_dev
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    tty: true
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
 
 volumes:
   db-data:
   storage-data:
   caddy-data:
   caddy-config:
+  ollama-data:

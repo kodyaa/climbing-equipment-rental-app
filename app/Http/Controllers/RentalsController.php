@@ -88,6 +88,10 @@ class RentalsController extends Controller
             'rental_date' => ['required', 'date'],
             'expected_return_date' => ['required', 'date', 'after_or_equal:rental_date'],
             'notes' => ['nullable', 'string'],
+            'discount' => ['nullable', 'numeric', 'min:0'],
+            'amount_paid' => ['required', 'numeric', 'min:0'],
+            'change_returned' => ['nullable', 'numeric', 'min:0'],
+            'payment_type' => ['required', 'string', 'in:cash,qris'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
@@ -118,13 +122,23 @@ class RentalsController extends Controller
                 ];
             }
 
+            $discount = $validated['discount'] ?? 0;
+            $amountPaid = $validated['amount_paid'] ?? 0;
+            $changeReturned = $validated['change_returned'] ?? 0;
+            $paymentType = $validated['payment_type'] ?? 'cash';
+            $grandTotal = max(0, $totalPrice - $discount);
+
             $rental = Rental::create([
                 'customer_id' => $validated['customer_id'],
                 'user_id' => $request->user()->id,
                 'rental_code' => Rental::generateCode(),
                 'rental_date' => $validated['rental_date'],
                 'expected_return_date' => $validated['expected_return_date'],
-                'total_price' => $totalPrice,
+                'total_price' => $grandTotal,
+                'discount' => $discount,
+                'amount_paid' => $amountPaid,
+                'change_returned' => $changeReturned,
+                'payment_type' => $paymentType,
                 'notes' => $validated['notes'] ?? null,
                 'status' => 'active',
             ]);

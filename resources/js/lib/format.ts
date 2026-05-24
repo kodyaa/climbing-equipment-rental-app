@@ -36,3 +36,21 @@ export function formatDateWithDay(dateStr: string | null): string {
     year: "numeric",
   })
 }
+
+/**
+ * Format a number to IDR thousands-separated string (e.g. 12.000).
+ */
+export function formatNumber(value: number | string | undefined | null): string {
+  if (value === undefined || value === null || value === "") return ""
+  const cleanValue = String(value).replace(/[^\d]/g, "")
+  if (!cleanValue) return ""
+  return new Intl.NumberFormat("id-ID").format(Number(cleanValue))
+}
+
+/**
+ * Parse an IDR thousands-separated string back to a number (e.g. "12.000" -> 12000).
+ */
+export function parseNumber(value: string): number {
+  const clean = value.replace(/[^\d]/g, "")
+  return clean ? Number(clean) : 0
+}

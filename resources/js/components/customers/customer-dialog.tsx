@@ -46,6 +46,9 @@ export function CustomerDialog({ isOpen, onOpenChange, editingCustomer }: Custom
     errors,
     processing,
     idNumberError,
+    isIdChecking,
+    emailError,
+    isEmailChecking,
     handleSubmit,
     handleCancel,
   } = useCustomerForm({
@@ -78,6 +81,9 @@ export function CustomerDialog({ isOpen, onOpenChange, editingCustomer }: Custom
           errors={errors}
           processing={processing}
           idNumberError={idNumberError}
+          isIdChecking={isIdChecking}
+          emailError={emailError}
+          isEmailChecking={isEmailChecking}
           handleSubmit={handleSubmit}
           handleCancel={handleCancel}
           regionData={{

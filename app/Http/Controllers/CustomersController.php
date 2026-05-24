@@ -138,4 +138,29 @@ class CustomersController extends Controller
             'name' => $existingCustomer?->name,
         ]);
     }
+
+    /**
+     * Check if a customer email address already exists.
+     */
+    public function checkEmail(Request $request): JsonResponse
+    {
+        $email = $request->query('email');
+        $excludeId = $request->query('exclude_id');
+
+        if (! $email) {
+            return response()->json(['exists' => false]);
+        }
+
+        $existingCustomer = Customer::query()
+            ->where('email', $email)
+            ->when($excludeId, function ($query, $excludeId) {
+                $query->where('id', '!=', $excludeId);
+            })
+            ->first();
+
+        return response()->json([
+            'exists' => $existingCustomer !== null,
+            'name' => $existingCustomer?->name,
+        ]);
+    }
 }

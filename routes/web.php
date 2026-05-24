@@ -1,23 +1,22 @@
 <?php
 
 use App\Http\Controllers\AccountsController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CustomersController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\RentalsController;
-use App\Models\Wilayah;
-use Illuminate\Http\Request;
+use App\Http\Controllers\WilayahController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', [LoginController::class, 'create'])->name('login');
 Route::post('/login', [LoginController::class, 'store']);
 Route::post('/logout', [LoginController::class, 'destroy']);
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('dashboard');
-    });
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
 
     // Owner only: user account management
     Route::middleware('role:owner')->group(function () {
@@ -31,58 +30,11 @@ Route::middleware('auth')->group(function () {
 
     // Both owner and kasir: customer management
     Route::middleware('role:owner|kasir')->group(function () {
-        Route::get('/wilayah/search', function (Request $request) {
-            $search = $request->query('search');
-            if (strlen($search) < 2) {
-                return response()->json([]);
-            }
-
-            return response()->json(
-                Wilayah::query()
-                    ->where('nama', 'like', "%{$search}%")
-                    ->orWhere('kode', 'like', "{$search}%")
-                    ->limit(20)
-                    ->get()
-            );
-        })->name('wilayah.search');
-
-        Route::get('/wilayah/children', function (Request $request) {
-            $parent = $request->query('parent');
-
-            if (! $parent) {
-                $data = Wilayah::query()
-                    ->whereRaw('LENGTH(kode) = 2')
-                    ->orderBy('nama')
-                    ->get();
-            } else {
-                $len = strlen($parent);
-                if ($len === 2) {
-                    $data = Wilayah::query()
-                        ->whereRaw('LENGTH(kode) = 5')
-                        ->where('kode', 'like', "{$parent}.%")
-                        ->orderBy('nama')
-                        ->get();
-                } elseif ($len === 5) {
-                    $data = Wilayah::query()
-                        ->whereRaw('LENGTH(kode) = 8')
-                        ->where('kode', 'like', "{$parent}.%")
-                        ->orderBy('nama')
-                        ->get();
-                } elseif ($len === 8) {
-                    $data = Wilayah::query()
-                        ->whereRaw('LENGTH(kode) = 13')
-                        ->where('kode', 'like', "{$parent}.%")
-                        ->orderBy('nama')
-                        ->get();
-                } else {
-                    $data = [];
-                }
-            }
-
-            return response()->json($data);
-        })->name('wilayah.children');
+        Route::get('/wilayah/search', [WilayahController::class, 'search'])->name('wilayah.search');
+        Route::get('/wilayah/children', [WilayahController::class, 'children'])->name('wilayah.children');
 
         Route::get('/customers/check-id', [CustomersController::class, 'checkIdNumber'])->name('customers.check-id');
+        Route::get('/customers/check-email', [CustomersController::class, 'checkEmail'])->name('customers.check-email');
         Route::apiResource('customers', CustomersController::class)->except(['show']);
     });
 
