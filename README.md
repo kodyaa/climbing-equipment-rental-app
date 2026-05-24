@@ -1,6 +1,6 @@
 # SummitRent by Kodya
 
-**SummitRent by Kodya** adalah aplikasi manajemen penyewaan peralatan pendakian gunung dan berkemah (hiking) premium. Dibangun di atas web stack modern, aplikasi ini menawarkan portal yang efisien bagi agen penyewaan outdoor untuk mengelola akun kasir/admin, melacak inventaris alat, menetapkan tarif harga sewa, dan mengelola status peralatan.
+**SummitRent by Kodya** adalah aplikasi manajemen penyewaan peralatan pendakian gunung dan berkemah (hiking) premium. Dibangun di atas web stack modern, aplikasi ini menawarkan portal yang efisien bagi agen penyewaan outdoor untuk mengelola akun kasir/admin, melacak inventaris alat, menetapkan tarif harga sewa, mengelola pelanggan, memproses transaksi sewa, dan menerima asisten AI secara real-time.
 
 ---
 
@@ -10,31 +10,51 @@
 - **Frontend SPA Layer:** Inertia.js v3 (React + TypeScript)
 - **Styling & Tema:** Tailwind CSS v4 (mengintegrasikan warna OKLCH, container queries)
 - **Arsitektur UI:** Komponen Radix & Shadcn UI yang disesuaikan secara kustom
-- **Framework Pengujian:** PHPUnit 12
+- **Real-Time WebSockets:** Laravel Reverb (Broadcasting & Echo)
+- **AI Integration:** Laravel AI SDK (`laravel/ai`) & Ollama (`qwen2.5:3b`)
+- **Pengujian & Pemformatan:** PHPUnit 12 & Laravel Pint
 
 ---
 
 ## ✨ Fitur Utama
 
-### 1. Manajemen Akun (Kasir & Admin)
-- **Operasi CRUD:** Sistem lengkap untuk menambah, mengubah, dan menghapus akun staf (Admin & Kasir).
-- **Unggah Foto Profil:** Unggah gambar secara langsung yang diproses dan disimpan dengan aman pada disk penyimpanan publik Laravel.
-- **Avatar DiceBear Micah:** Integrasi **API DiceBear 9.x Micah** modern untuk pembuatan avatar vektor otomatis berdasarkan nama pengguna:
-  - Navigasi menggunakan tombol Kiri/Kanan untuk mengganti seed varian.
-  - Kustomisasi ekspresi mulut (senyum, cemberut, manyun, seringai, dll.) dan warna pakaian.
-  - Latar belakang mendukung pola linear-gradient, warna preset, dan pemilih warna kustom (color picker).
-- **Pemuatan Asinkron Terbangguhkan (Deferred Props):** Menggunakan fitur deferred props dari Inertia v3 untuk menampilkan mockup **Skeleton Table** yang sangat detail dan presisi, mencocokkan kolom tabel, paginasi, dan filter asli saat halaman dimuat.
-- **Perlindungan Keamanan:** Proteksi penghapusan diri mencegah admin yang sedang login menghapus akun mereka sendiri secara tidak sengaja.
+### 1. Sistem Keamanan & Hak Akses (Spatie Roles & Permissions)
+- **Pengamanan Rute Berlapis (Granular Route-Level Hardening):** Seluruh endpoint (Produk, Akun, Pelanggan, Transaksi Sewa) dilindungi secara ketat di tingkat rute menggunakan middleware permission Spatie (seperti `permission:customers.create`). Ini menggantikan penguncian role kasar bawaan (`role:owner|kasir`) untuk mencegah bypass API.
+- **Manajemen Akun Terpadu:** Sistem CRUD lengkap dengan layout **3-kolom flex/grid** premium untuk mengonfigurasi profil dasar, peran (Owner vs Kasir), dan daftar centang permission Spatie granular.
+- **Visibilitas Dinamis (UI-Backend Sync):** Menu sidebar, tombol aksi tabel, dan fungsionalitas halaman disembunyikan atau ditampilkan secara dinamis berdasarkan data peran dan izin pengguna yang dibagikan secara global via Inertia.
+- **Lencana & Label Flat Dinamis:** Halaman Akun menampilkan peran dengan lencana berwarna (*badges*) dan menyusun daftar izin dalam format flat yang bersih berdasarkan metadata terjemahan lokalisasi.
+- **Unggah Foto Profil & Avatar DiceBear:** 
+  - Unggah gambar profil asli yang disimpan dengan aman pada disk penyimpanan publik Laravel.
+  - Integrasi **API DiceBear 9.x Micah** untuk pembuatan avatar vektor otomatis berbasis nama: siklus seed (Kiri/Kanan), kustomisasi ekspresi mulut, pakaian, warna latar belakang preset, dan color picker kustom.
+- **Pemuatan Asinkron Terbangguhkan (Deferred Props):** Menggunakan deferred props Inertia v3 untuk memuat tabel secara asinkron dengan visual **Skeleton Table** yang sangat detail saat halaman dimuat.
 
-### 2. Inventaris Sewa (Produk)
+### 2. POS Transaksi Sewa & Kasir Pintar
+- **Alur Checkout Lengkap:** Operator dapat menghitung total sewa secara otomatis, menerapkan potongan harga (*discounts*), memilih metode pembayaran (Cash / QRIS), memasukkan uang yang dibayarkan, dan menghitung kembalian atau sisa tagihan secara real-time.
+- **Popover Date Pickers Premium:** Menggantikan input tanggal HTML bawaan browser dengan kalender popover (Shadcn Calendar) terintegrasi serta manipulasi tanggal yang kebal zona waktu memanfaatkan package `@internationalized/date`.
+- **Pendaftaran Pelanggan Cepat:** Tombol pintasan langsung di dalam keranjang belanja untuk mendaftarkan pelanggan baru tanpa harus meninggalkan halaman kasir.
+
+### 3. Manajemen Pelanggan (Customers)
+- **Validasi KTP / NIK & Telepon:** Membatasi input nomor KTP/Passport tepat 16 digit angka dan nomor telepon sesuai format standar Indonesia.
+- **Live Validasi Ketersediaan (Real-Time Checking):** Memvalidasi ketersediaan KTP (NIK) dan Email di database secara real-time saat pengguna mengetik, lengkap dengan indikator pemuatan spinner (`Loader2`) dan tanda centang hijau (`Check`) jika tersedia.
+- **Overlay Cover Preview Identitas ("Preview Photo Timpa"):** Redesain kotak upload foto identitas dengan gambar *full-bleed* responsif dan efek hover overlay gelap (`backdrop-blur-[2px] bg-black/60`) untuk mengganti atau menghapus preview foto secara interaktif.
+
+### 4. Inventaris Produk & Katalog
 - **Filter Kategori Dinamis:** Kelompokkan produk berdasarkan Tenda, Ransel, Kantong Tidur, Alas Kaki, Peralatan Memasak, dan Alat Panjat.
-- **Pencarian & Pengurutan Sisi Server:** Sinkronisasi parameter query secara real-time (pencarian teks, pengurutan tarif sewa, tanggal dibuat, atau stok) yang didebounce selama `400ms` untuk interaksi yang responsif.
+- **Pencarian & Pengurutan Sisi Server:** Sinkronisasi parameter query secara real-time yang didebounce selama `400ms` untuk interaksi yang responsif.
 - **Pelacakan Stok:** Badge berwarna yang menunjukkan status ketersediaan barang (`Available` / Tersedia, `Maintenance` / Perawatan, `Out of Stock` / Habis).
-- **Skeleton Kartu Asinkron:** Memuat katalog produk di latar belakang menggunakan deferred props, merender grid berupa mockup **Skeleton Card** yang berdenyut dengan blok gambar, judul, harga sewa, dan stok yang presisi.
+- **Skeleton Kartu Asinkron:** Memuat katalog produk di latar belakang dengan grid berupa mockup **Skeleton Card** yang berdenyut presisi.
 
-### 3. Poles & Animasi Premium
+### 5. Asisten AI & WebSockets Real-Time
+- **Obrolan Asisten AI Berbasis Event:** Dialog asisten AI interaktif dengan layout belah (*split-pane*) premium. Menyimpan sesi chat secara lokal (`localStorage`), dan menyiarkan langkah berpikir AI secara real-time ("Proses Berpikir Asisten") serta hasil teks markdown via WebSocket.
+- **Notifikasi Operasional Real-Time:** Penyiaran notifikasi instan via Laravel Reverb ke ikon lonceng header dengan unread badges untuk:
+  - Peringatan stok produk menipis (*low-stock*).
+  - Pembaruan status transaksi sewa (disewa, dikembalikan, dibatalkan).
+  - Peringatan harian transaksi sewa yang terlambat (*overdue*).
+
+### 6. Poles & Animasi Premium
 - **Transisi Tema Circular Reveal (Ripple):** Peralihan tema (Terang/Gelap/Sistem) modern yang melakukan efek lingkaran melingkar (ripple) yang berpusat pada koordinat klik mouse pengguna, didukung oleh **View Transitions API** (`document.startViewTransition`) dan animasi `flushSync`.
 - **Bebas Kedipan Tema (Glitch-Free):** Sinkronisasi preferensi tema pengguna dijalankan secara inline di dalam tag `<head>` sebelum parsing dokumen HTML dilakukan. Hal ini mencegah kedipan warna putih (FOUC) saat memuat ulang halaman.
+- **Scrollbar Kustom Global:** Gaya scrollbar kustom adaptif dengan pewarnaan transparan premium yang mencocokkan mode terang/gelap secara otomatis.
 
 ---
 
@@ -73,14 +93,19 @@
    php artisan migrate:fresh --seed
    ```
    *Data seeder mencakup:*
-   - Akun administrator default (`admin@example.com` / `password`).
-   - Akun kasir yang dilengkapi URL avatar vektor DiceBear.
+   - Akun administrator default (`admin@kodya.id` / `password`).
+   - Akun kasir default (`cashier@kodya.id` / `password`) yang dilengkapi izin khusus kasir.
+   - 20 data pelanggan realistis Indonesia yang terpetakan ke kode wilayah administratif lengkap.
    - 12 produk pendakian gunung berkualitas tinggi dengan gambar Unsplash asli.
 
 5. **Jalankan Server Pengembangan:**
    - Jalankan backend Laravel:
      ```bash
      php artisan serve
+     ```
+   - Jalankan Reverb WebSocket server (jika diperlukan untuk fitur chat/notifikasi):
+     ```bash
+     php artisan reverb:start
      ```
    - Jalankan Vite development server:
      ```bash
@@ -107,6 +132,11 @@ Menjalankan aplikasi dalam **mode watch (hot-reload)** dengan volume mounting di
   ```bash
   docker compose -f compose.dev.yaml exec app php artisan test --compact
   ```
+- Unduh dan jalankan model AI Qwen (Ollama) di dalam kontainer:
+  ```bash
+  docker exec -it rentalapp_ollama_dev ollama run qwen2.5:3b
+  ```
+  *(Catatan: Model AI `qwen2.5:3b` dibutuhkan agar fitur asisten AI di halaman obrolan dapat berfungsi)*
 - Akses aplikasi secara lokal: Buka `http://localhost:8000` pada browser Anda.
 
 ### 2. Lingkungan Produksi (Production)
@@ -128,6 +158,12 @@ Menjalankan aplikasi dengan optimasi *caching* konfigurasi:
 Jalankan suite pengujian PHPUnit untuk memverifikasi aturan keamanan, batasan validasi data, dan aksi database:
 ```bash
 php artisan test --compact
+```
+
+### Pemformatan Kode
+Jalankan Laravel Pint untuk memastikan seluruh standardisasi penulisan kode PHP tetap bersih dan rapi:
+```bash
+vendor/bin/pint --dirty --format agent
 ```
 
 ### Kompilasi Produksi
