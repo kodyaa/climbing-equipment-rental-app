@@ -18,6 +18,9 @@ Route::post('/logout', [LoginController::class, 'destroy']);
 Route::middleware('auth')->group(function () {
     Route::post('/ai/chat', [AiAgentController::class, 'chat'])->name('ai.chat');
     Route::post('/ai/stream', [AiAgentController::class, 'stream'])->name('ai.stream');
+    Route::get('/ai/sessions', [AiAgentController::class, 'sessions'])->name('ai.sessions');
+    Route::get('/ai/sessions/{id}/messages', [AiAgentController::class, 'messages'])->name('ai.sessions.messages');
+    Route::delete('/ai/sessions/{id}', [AiAgentController::class, 'deleteSession'])->name('ai.sessions.delete');
 
     // ─── Products & Catalog ──────────────────────────────────────────────────
     Route::middleware('permission:products.view')->group(function () {

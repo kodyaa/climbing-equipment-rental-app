@@ -25,27 +25,27 @@ class GetRentalsTool implements Tool
     {
         $query = Rental::with(['customer', 'cashier'])->withCount('items');
 
-        if ($status = $request->string('status')) {
+        if ($status = $request['status'] ?? null) {
             $query->where('status', $status);
         }
 
-        if ($code = $request->string('rental_code')) {
+        if ($code = $request['rental_code'] ?? null) {
             $query->where('rental_code', 'like', "%{$code}%");
         }
 
-        if ($customerName = $request->string('customer_name')) {
+        if ($customerName = $request['customer_name'] ?? null) {
             $query->whereHas('customer', fn ($q) => $q->where('name', 'like', "%{$customerName}%"));
         }
 
-        if ($dateFrom = $request->string('date_from')) {
+        if ($dateFrom = $request['date_from'] ?? null) {
             $query->whereDate('rental_date', '>=', $dateFrom);
         }
 
-        if ($dateTo = $request->string('date_to')) {
+        if ($dateTo = $request['date_to'] ?? null) {
             $query->whereDate('rental_date', '<=', $dateTo);
         }
 
-        if ($request->boolean('overdue')) {
+        if ($request['overdue'] ?? false) {
             $query->where('status', 'active')
                 ->whereDate('expected_return_date', '<', today());
         }

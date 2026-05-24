@@ -101,6 +101,7 @@ function MarkdownContent({ content }: { content: string }) {
 interface MessageBubbleProps {
   msg: AiMessage
   isLastUserMessage: boolean
+  isLastMessage: boolean
   isCopied: boolean
   onCopy: () => void
   onRetry: (text: string) => void
@@ -112,6 +113,7 @@ interface MessageBubbleProps {
 export function MessageBubble({
   msg,
   isLastUserMessage,
+  isLastMessage,
   isCopied,
   onCopy,
   onRetry,
@@ -121,10 +123,10 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const isUser = msg.role === "user"
   const showRetry = (isUser && isLastUserMessage) || (!isUser && msg.isError)
-  const hasSuggestions = !isUser && !msg.isError && (msg.suggestions?.length ?? 0) > 0
+  const hasSuggestions = isLastMessage && !isUser && !msg.isError && (msg.suggestions?.length ?? 0) > 0
 
   return (
-    <div className={`flex flex-col gap-2 ${isUser ? "items-end" : "items-start"}`}>
+    <div className={`flex flex-col gap-2 ${isUser ? "items-end" : "items-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
       {/* Avatar + bubble row */}
       <div className={`group flex gap-3 max-w-[88%] ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}>
         {isUser ? (
@@ -184,16 +186,22 @@ export function MessageBubble({
 
       {/* Follow-up suggestion chips */}
       {hasSuggestions && (
-        <div className="ml-11 flex flex-wrap gap-1.5 max-w-[88%]">
-          {msg.suggestions!.map((s, idx) => (
-            <button
-              key={idx}
-              onClick={() => onSuggestion(s)}
-              className="text-[11px] text-left px-2.5 py-1.5 rounded-lg bg-violet-500/8 hover:bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/20 hover:border-violet-500/40 transition-all cursor-pointer leading-snug"
-            >
-              {s}
-            </button>
-          ))}
+        <div className="ml-11 flex flex-col gap-1.5 max-w-[88%] animate-in fade-in slide-in-from-bottom-1 duration-500 delay-150">
+          <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+            <SparklesIcon className="size-3 text-violet-500 animate-pulse" />
+            <span>Rekomendasi Pertanyaan:</span>
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {msg.suggestions!.map((s, idx) => (
+              <button
+                key={idx}
+                onClick={() => onSuggestion(s)}
+                className="text-[11px] text-left px-2.5 py-1.5 rounded-lg bg-violet-500/8 hover:bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/20 hover:border-violet-500/40 transition-all cursor-pointer leading-snug"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -252,7 +260,7 @@ export function TypingIndicator() {
  */
 export function StreamingBubble({ content }: { content: string }) {
   return (
-    <div className="flex gap-3 max-w-[88%] mr-auto">
+    <div className="flex gap-3 max-w-[88%] mr-auto animate-in fade-in slide-in-from-bottom-2 duration-300">
       <BotAvatar />
       <div className="rounded-lg px-3 py-2.5 text-sm bg-muted text-foreground">
         {content ? (

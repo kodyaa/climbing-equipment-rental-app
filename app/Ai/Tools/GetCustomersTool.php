@@ -25,7 +25,7 @@ class GetCustomersTool implements Tool
     {
         $query = Customer::query();
 
-        if ($search = $request->string('search')) {
+        if ($search = $request['search'] ?? null) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%")

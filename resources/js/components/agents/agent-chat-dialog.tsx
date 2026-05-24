@@ -22,7 +22,8 @@ import {
 import { usePage } from "@inertiajs/react"
 import { useAgentChat } from "@/hooks/use-agent-chat"
 import { BotAvatar, MessageBubble, ReasoningSteps, StreamingBubble, TypingIndicator } from "./chat-components"
-import { AI_QUICK_PROMPTS, AiChatSession } from "@/types/ai"
+import { AiChatSession } from "@/types/ai"
+import { toast } from "sonner"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -112,6 +113,7 @@ export function AgentChatDialog() {
                   key={index}
                   msg={msg}
                   isLastUserMessage={index === lastUserMsgIndex}
+                  isLastMessage={index === messages.length - 1}
                   isCopied={copiedIndex === index}
                   onCopy={() => handleCopy(msg.content, index)}
                   onRetry={handleRetryFromMessage}
@@ -139,10 +141,7 @@ export function AgentChatDialog() {
               <div ref={scrollRef} />
             </div>
 
-            {/* Quick prompts — shown only on fresh sessions */}
-            {messages.length === 1 && !isLoading && (
-              <QuickPrompts onSelect={handleSend} />
-            )}
+
 
             {/* Input footer */}
             <ChatInput
@@ -212,7 +211,10 @@ function SessionSidebar({
             <Button
               variant="ghost"
               size="icon"
-              onClick={(e) => onDeleteSession(session.id, e)}
+              onClick={(e) => {
+                onDeleteSession(session.id, e)
+                toast.success("Riwayat obrolan berhasil dihapus")
+              }}
               className="size-7 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 rounded-md transition-opacity"
             >
               <Trash2Icon className="size-3.5" />
@@ -257,29 +259,7 @@ function ChatHeader({ onNewSession }: { onNewSession: () => void }) {
   )
 }
 
-// ─── Quick Prompts ────────────────────────────────────────────────────────────
 
-function QuickPrompts({ onSelect }: { onSelect: (text: string) => void }) {
-  return (
-    <div className="px-4 pb-3">
-      <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
-        <SparklesIcon className="size-3.5 text-violet-500 animate-pulse" />
-        <span>Rekomendasi Pertanyaan:</span>
-      </p>
-      <div className="flex flex-wrap gap-1.5">
-        {AI_QUICK_PROMPTS.map((prompt, idx) => (
-          <button
-            key={idx}
-            onClick={() => onSelect(prompt)}
-            className="text-xs text-left px-3 py-2 rounded-lg bg-muted hover:bg-violet-500/10 hover:text-violet-600 border border-transparent hover:border-violet-500/20 transition-all cursor-pointer"
-          >
-            {prompt}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // ─── Chat Input ───────────────────────────────────────────────────────────────
 

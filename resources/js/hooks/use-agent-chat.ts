@@ -3,8 +3,6 @@ import {
   AiChatSession,
   AiMessage,
   createAiSession,
-  loadAiSessions,
-  saveAiSessions,
 } from "@/types/ai"
 
 // ─── SSE event shape from /ai/stream ─────────────────────────────────────────
@@ -13,7 +11,7 @@ type SseEvent =
   | { type: "step"; step: string }
   | { type: "start" }
   | { type: "chunk"; text: string }
-  | { type: "done"; suggestions: string[] }
+  | { type: "done"; suggestions: string[]; text?: string; conversation_id?: string }
   | { type: "error"; message: string }
 
 // ─── Hook interface ───────────────────────────────────────────────────────────
@@ -57,33 +55,124 @@ export function useAgentChat({ userId }: UseAgentChatOptions = {}): UseAgentChat
   // Abort controller ref — lets us cancel an in-flight stream on unmount/retry
   const abortControllerRef = React.useRef<AbortController | null>(null)
 
-  // Load sessions on mount
+  // Refs for typewriter buffer smoothing effect
+  const accumulatedRef = React.useRef("")
+  const displayedRef = React.useRef("")
+  const isStreamDoneRef = React.useRef(false)
+  const finalSuggestionsRef = React.useRef<string[]>([])
+  const finalConvIdRef = React.useRef<string | undefined>(undefined)
+
+  // Load sessions on mount from database
   React.useEffect(() => {
-    const loaded = loadAiSessions()
-    setSessions(loaded)
-    setActiveSessionId(loaded[0].id)
+    fetch("/ai/sessions")
+      .then((res) => res.json())
+      .then((data: { id: string; title: string; createdAt: string }[]) => {
+        if (data.length > 0) {
+          const mapped = data.map((s) => ({
+            id: s.id,
+            title: s.title,
+            createdAt: s.createdAt,
+            messages: [],
+          }))
+          setSessions(mapped)
+          setActiveSessionId(mapped[0].id)
+        } else {
+          const fallback = createAiSession(`temp-${Date.now()}`)
+          setSessions([fallback])
+          setActiveSessionId(fallback.id)
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load sessions", err)
+        const fallback = createAiSession(`temp-${Date.now()}`)
+        setSessions([fallback])
+        setActiveSessionId(fallback.id)
+      })
   }, [])
+
+  // Load messages for active session dynamically
+  React.useEffect(() => {
+    if (!activeSessionId || activeSessionId.startsWith("temp-")) return
+
+    const session = sessions.find((s) => s.id === activeSessionId)
+    if (session && session.messages.length === 0) {
+      setIsLoading(true)
+      fetch(`/ai/sessions/${activeSessionId}/messages`)
+        .then((res) => res.json())
+        .then((data: AiMessage[]) => {
+          setSessions((prev) =>
+            prev.map((s) => (s.id === activeSessionId ? { ...s, messages: data } : s))
+          )
+        })
+        .catch((err) => console.error("Failed to load messages", err))
+        .finally(() => setIsLoading(false))
+    }
+  }, [activeSessionId, sessions])
 
   // Auto-scroll when content changes
   React.useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [sessions, reasoningSteps, streamingContent, isLoading])
 
+  // Typewriter buffer smoothing effect loop
+  React.useEffect(() => {
+    if (streamingContent === null) return
+
+    let timer: number
+    const tick = () => {
+      const target = accumulatedRef.current
+      const current = displayedRef.current
+
+      if (current.length < target.length) {
+        const diff = target.length - current.length
+        // Dynamic speed based on buffer diff length
+        const step = diff > 40 ? 6 : diff > 15 ? 3 : 1
+        const nextText = current + target.slice(current.length, current.length + step)
+        displayedRef.current = nextText
+        setStreamingContent(nextText)
+        timer = window.setTimeout(tick, 10)
+      } else if (isStreamDoneRef.current) {
+        setStreamingContent(null)
+        setIsLoading(false)
+        appendMessageStable(
+          {
+            role: "assistant",
+            content: target,
+            suggestions: finalSuggestionsRef.current,
+          },
+          finalConvIdRef.current
+        )
+      } else {
+        timer = window.setTimeout(tick, 20)
+      }
+    }
+
+    timer = window.setTimeout(tick, 10)
+    return () => clearTimeout(timer)
+  }, [streamingContent === null])
+
   const activeSession = sessions.find((s) => s.id === activeSessionId)
   const messages = activeSession?.messages ?? []
 
   /** Append a completed message into the active session (stable — reads sessionId from ref) */
-  const appendMessageStable = React.useCallback((newMsg: AiMessage) => {
+  const appendMessageStable = React.useCallback((newMsg: AiMessage, newSessionId?: string) => {
     setSessions((prev) => {
       const sessionId = activeSessionIdRef.current
       const updated = prev.map((session) =>
         session.id === sessionId
-          ? { ...session, messages: [...session.messages, newMsg] }
+          ? {
+              ...session,
+              id: newSessionId && sessionId.startsWith("temp-") ? newSessionId : session.id,
+              messages: [...session.messages, newMsg],
+            }
           : session
       )
-      saveAiSessions(updated)
       return updated
     })
+
+    if (newSessionId && activeSessionIdRef.current.startsWith("temp-")) {
+      setActiveSessionId(newSessionId)
+    }
   }, [])
 
   /** Read and process the /ai/stream SSE response */
@@ -95,12 +184,16 @@ export function useAgentChat({ userId }: UseAgentChatOptions = {}): UseAgentChat
     const csrfToken =
       document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? ""
 
+    const conversationId = activeSessionIdRef.current.startsWith("temp-")
+      ? null
+      : activeSessionIdRef.current
+
     const response = await fetch("/ai/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrfToken },
       body: JSON.stringify({
         message: text,
-        history: snapshot.map(({ role, content }) => ({ role, content })),
+        conversation_id: conversationId,
       }),
       signal,
     })
@@ -141,20 +234,18 @@ export function useAgentChat({ userId }: UseAgentChatOptions = {}): UseAgentChat
 
         } else if (event.type === "start") {
           setReasoningSteps([])
+          accumulatedRef.current = ""
+          displayedRef.current = ""
+          isStreamDoneRef.current = false
           setStreamingContent("")   // open the live bubble
 
         } else if (event.type === "chunk") {
-          accumulated += event.text
-          setStreamingContent(accumulated)
+          accumulatedRef.current += event.text
 
         } else if (event.type === "done") {
-          setStreamingContent(null)
-          setIsLoading(false)
-          appendMessageStable({
-            role: "assistant",
-            content: accumulated,
-            suggestions: event.suggestions,
-          })
+          finalSuggestionsRef.current = event.suggestions
+          finalConvIdRef.current = event.conversation_id
+          isStreamDoneRef.current = true
           return
 
         } else if (event.type === "error") {
@@ -178,6 +269,12 @@ export function useAgentChat({ userId }: UseAgentChatOptions = {}): UseAgentChat
     setReasoningSteps(["Menerima input Anda..."])
     setIsLoading(true)
     setStreamingContent(null)
+
+    accumulatedRef.current = ""
+    displayedRef.current = ""
+    isStreamDoneRef.current = false
+    finalSuggestionsRef.current = []
+    finalConvIdRef.current = undefined
 
     try {
       // snapshot already contains the new user message at the end
@@ -212,7 +309,6 @@ export function useAgentChat({ userId }: UseAgentChatOptions = {}): UseAgentChat
         updatedMessages = [...session.messages, userMessage]
         return { ...session, title, messages: updatedMessages }
       })
-      saveAiSessions(updated)
       return updated
     })
 
@@ -229,7 +325,6 @@ export function useAgentChat({ userId }: UseAgentChatOptions = {}): UseAgentChat
         if (msgs.at(-1)?.isError) msgs.pop()
         return { ...session, messages: msgs }
       })
-      saveAiSessions(updated)
       return updated
     })
 
@@ -239,31 +334,36 @@ export function useAgentChat({ userId }: UseAgentChatOptions = {}): UseAgentChat
   }
 
   const handleNewSession = () => {
-    const session = createAiSession()
-    setSessions((prev) => {
-      const updated = [session, ...prev]
-      saveAiSessions(updated)
-      return updated
-    })
+    const session = createAiSession(`temp-${Date.now()}`)
+    setSessions((prev) => [session, ...prev])
     setActiveSessionId(session.id)
   }
 
   const handleDeleteSession = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
+
+    if (!id.startsWith("temp-")) {
+      const csrfToken =
+        document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? ""
+      fetch(`/ai/sessions/${id}`, {
+        method: "DELETE",
+        headers: { "X-CSRF-TOKEN": csrfToken },
+      }).catch((err) => console.error("Failed to delete session on server", err))
+    }
+
     setSessions((prev) => {
       const updated = prev.filter((s) => s.id !== id)
       let activeId = activeSessionId
 
       if (activeSessionId === id) {
         if (updated.length === 0) {
-          const fallback = createAiSession()
+          const fallback = createAiSession(`temp-${Date.now()}`)
           updated.push(fallback)
         }
         activeId = updated[0].id
         setActiveSessionId(activeId)
       }
 
-      saveAiSessions(updated)
       return updated
     })
   }

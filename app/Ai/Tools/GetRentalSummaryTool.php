@@ -24,7 +24,10 @@ class GetRentalSummaryTool implements Tool
      */
     public function handle(Request $request): Stringable|string
     {
-        $period = $request->string('period', 'today');
+        $period = $request['period'] ?? 'today';
+        if ($period === '') {
+            $period = 'today';
+        }
 
         $dateRange = match ($period) {
             'today' => [today(), today()],

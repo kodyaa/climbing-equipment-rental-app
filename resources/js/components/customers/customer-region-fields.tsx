@@ -67,8 +67,10 @@ export function CustomerRegionFields({
             onValueChange={handleProvChange}
           >
             <ComboboxTrigger render={
-              <Button variant="outline" className="w-full justify-between font-normal h-9 text-xs bg-card">
-                <ComboboxValue placeholder="Select Province" />
+              <Button variant="outline" className="w-full justify-between font-normal h-9 text-xs bg-card min-w-0">
+                <span className="flex-1 mr-2 truncate text-left min-w-0">
+                  <ComboboxValue placeholder="Select Province" />
+                </span>
               </Button>
             } />
             <ComboboxContent container={dialogContentRef} className="w-full">
@@ -95,8 +97,10 @@ export function CustomerRegionFields({
             disabled={!selectedProv || regencies.length === 0}
           >
             <ComboboxTrigger render={
-              <Button variant="outline" className="w-full justify-between font-normal h-9 text-xs bg-card" disabled={!selectedProv || regencies.length === 0}>
-                <ComboboxValue placeholder="Select Regency/City" />
+              <Button variant="outline" className="w-full justify-between font-normal h-9 text-xs bg-card min-w-0" disabled={!selectedProv || regencies.length === 0}>
+                <span className="flex-1 mr-2 truncate text-left min-w-0">
+                  <ComboboxValue placeholder="Select Regency/City" />
+                </span>
               </Button>
             } />
             <ComboboxContent container={dialogContentRef} className="w-full">
@@ -123,8 +127,10 @@ export function CustomerRegionFields({
             disabled={!selectedReg || districts.length === 0}
           >
             <ComboboxTrigger render={
-              <Button variant="outline" className="w-full justify-between font-normal h-9 text-xs bg-card" disabled={!selectedReg || districts.length === 0}>
-                <ComboboxValue placeholder="Select District" />
+              <Button variant="outline" className="w-full justify-between font-normal h-9 text-xs bg-card min-w-0" disabled={!selectedReg || districts.length === 0}>
+                <span className="flex-1 mr-2 truncate text-left min-w-0">
+                  <ComboboxValue placeholder="Select District" />
+                </span>
               </Button>
             } />
             <ComboboxContent container={dialogContentRef} className="w-full">
@@ -151,8 +157,10 @@ export function CustomerRegionFields({
             disabled={!selectedDist || villages.length === 0}
           >
             <ComboboxTrigger render={
-              <Button variant="outline" className="w-full justify-between font-normal h-9 text-xs bg-card" disabled={!selectedDist || villages.length === 0}>
-                <ComboboxValue placeholder="Select Village" />
+              <Button variant="outline" className="w-full justify-between font-normal h-9 text-xs bg-card min-w-0" disabled={!selectedDist || villages.length === 0}>
+                <span className="flex-1 mr-2 truncate text-left min-w-0">
+                  <ComboboxValue placeholder="Select Village" />
+                </span>
               </Button>
             } />
             <ComboboxContent container={dialogContentRef} className="w-full">

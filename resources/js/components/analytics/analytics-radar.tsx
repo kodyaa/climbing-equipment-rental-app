@@ -32,8 +32,8 @@ interface AnalyticsRadarProps {
 
 const chartConfig = {
   rentals: {
-    label: "Items Rented",
-    color: "var(--chart-1)",
+    label: "Peralatan Disewa",
+    color: "hsl(262.1 83.3% 57.8%)", // Vibrant Violet/Indigo
   },
 } satisfies ChartConfig
 
@@ -45,14 +45,14 @@ export function AnalyticsRadar({ radarData }: AnalyticsRadarProps) {
   }, [radarData])
 
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader className="items-center">
-        <CardTitle>Popularity by Category</CardTitle>
+        <CardTitle>Popularitas Kategori</CardTitle>
         <CardDescription>
-          Showing total equipment items rented per category
+          Jumlah peralatan yang disewa per kategori produk
         </CardDescription>
       </CardHeader>
-      <CardContent className="pb-0">
+      <CardContent className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
           className="mx-auto aspect-square max-h-62.5"
@@ -64,28 +64,32 @@ export function AnalyticsRadar({ radarData }: AnalyticsRadarProps) {
             <Radar
               dataKey="rentals"
               fill="var(--color-rentals)"
-              fillOpacity={0.6}
+              fillOpacity={0.3}
+              stroke="var(--color-rentals)"
+              strokeWidth={2}
               dot={{
                 r: 4,
                 fillOpacity: 1,
+                stroke: "var(--color-rentals)",
+                strokeWidth: 2,
               }}
             />
           </RadarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
+      <CardFooter className="flex-col gap-2 pt-4 text-sm">
         {maxRented && maxRented.rentals > 0 ? (
           <div className="flex items-center gap-2 leading-none font-medium">
-            {maxRented.category} is the most popular ({maxRented.rentals} rented){" "}
+            Kategori {maxRented.category} paling populer ({maxRented.rentals} disewa){" "}
             <TrendingUp className="h-4 w-4" />
           </div>
         ) : (
           <div className="flex items-center gap-2 leading-none font-medium">
-            No equipment rented yet <TrendingUp className="h-4 w-4" />
+            Belum ada peralatan yang disewa <TrendingUp className="h-4 w-4" />
           </div>
         )}
         <div className="flex items-center gap-2 leading-none text-muted-foreground">
-          Live statistics from active database records
+          Statistik langsung dari database aktif
         </div>
       </CardFooter>
     </Card>

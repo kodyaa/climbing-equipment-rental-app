@@ -11,9 +11,21 @@ interface AnalyticsProps {
     category: string
     rentals: number
   }>
+  chartData: Array<{
+    date: string
+    cash: number
+    qris: number
+  }>
+  pieData: Array<{
+    month: string
+    active: number
+    returned: number
+    overdue: number
+    total: number
+  }>
 }
 
-export default function Analytics({ radarData }: AnalyticsProps) {
+export default function Analytics({ radarData, chartData, pieData }: AnalyticsProps) {
   return (
     <SidebarProvider
       style={
@@ -31,14 +43,14 @@ export default function Analytics({ radarData }: AnalyticsProps) {
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               {/* Interactive Area Chart - Spans Full Width */}
               <div className="px-4 lg:px-6">
-                <ChartAreaInteractive />
+                <ChartAreaInteractive chartData={chartData} />
               </div>
 
               {/* Responsive Grid for Radar, Pie, and Bar Charts */}
               <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6 lg:px-6">
                 <AnalyticsRadar radarData={radarData} />
-                <ChartPieInteractive />
-                <ChartBarMultiple />
+                <ChartPieInteractive pieData={pieData} />
+                <ChartBarMultiple pieData={pieData} />
               </div>
             </div>
           </div>

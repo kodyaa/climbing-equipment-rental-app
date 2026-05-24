@@ -18,61 +18,82 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 
-export const description = "A multiple bar chart"
+export const description = "A multiple bar chart showing rental status history"
 
-const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
-]
+const monthNamesMap: Record<string, string> = {
+  january: "Januari",
+  february: "Februari",
+  march: "Maret",
+  april: "April",
+  may: "Mei",
+  june: "Juni",
+  july: "Juli",
+  august: "Agustus",
+  september: "September",
+  october: "Oktober",
+  november: "November",
+  december: "Desember",
+}
 
 const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "var(--chart-1)",
+  active: {
+    label: "Aktif",
+    color: "hsl(217.2 91.2% 59.8%)", // Vibrant Royal Blue
   },
-  mobile: {
-    label: "Mobile",
-    color: "var(--chart-2)",
+  returned: {
+    label: "Selesai",
+    color: "hsl(142.1 76.2% 36.3%)", // Vibrant Emerald Green
+  },
+  overdue: {
+    label: "Terlambat",
+    color: "hsl(0 84.2% 60.2%)", // Vibrant Red
   },
 } satisfies ChartConfig
 
-export function ChartBarMultiple() {
+interface ChartBarMultipleProps {
+  pieData?: Array<{
+    month: string
+    active: number
+    returned: number
+    overdue: number
+    total: number
+  }>
+}
+
+export function ChartBarMultiple({ pieData = [] }: ChartBarMultipleProps) {
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
-        <CardTitle>Bar Chart - Multiple</CardTitle>
-        <CardDescription>January - June 2024</CardDescription>
+        <CardTitle>Histori Status Penyewa</CardTitle>
+        <CardDescription>Visualisasi jumlah penyewa selama 6 bulan terakhir</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig}>
-          <BarChart accessibilityLayer data={chartData}>
+      <CardContent className="flex-1 pb-0">
+        <ChartContainer config={chartConfig} className="aspect-auto h-62.5 w-full">
+          <BarChart accessibilityLayer data={pieData}>
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="month"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
-              tickFormatter={(value) => value.slice(0, 3)}
+              tickFormatter={(value) => monthNamesMap[value]?.slice(0, 3) || value}
             />
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent indicator="dashed" />}
             />
-            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
-            <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
+            <Bar dataKey="active" fill="var(--color-active)" radius={4} />
+            <Bar dataKey="returned" fill="var(--color-returned)" radius={4} />
+            <Bar dataKey="overdue" fill="var(--color-overdue)" radius={4} />
           </BarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm">
+      <CardFooter className="flex-col items-start gap-2 pt-4 text-sm">
         <div className="flex gap-2 leading-none font-medium">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+          Akumulasi status penyewaan bulanan <TrendingUp className="h-4 w-4" />
         </div>
         <div className="leading-none text-muted-foreground">
-          Showing total visitors for the last 6 months
+          Menampilkan tren data penyewa untuk 6 bulan terakhir
         </div>
       </CardFooter>
     </Card>

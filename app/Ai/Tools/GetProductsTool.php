@@ -25,23 +25,23 @@ class GetProductsTool implements Tool
     {
         $query = Product::query();
 
-        if ($category = $request->string('category')) {
+        if ($category = $request['category'] ?? null) {
             $query->where('category', $category);
         }
 
-        if ($status = $request->string('status')) {
+        if ($status = $request['status'] ?? null) {
             $query->where('status', $status);
         }
 
-        if ($search = $request->string('search')) {
+        if ($search = $request['search'] ?? null) {
             $query->where('name', 'like', "%{$search}%");
         }
 
-        if ($request->boolean('low_stock')) {
+        if ($request['low_stock'] ?? false) {
             $query->where('stock', '<=', 5)->where('stock', '>', 0);
         }
 
-        if ($request->boolean('out_of_stock')) {
+        if ($request['out_of_stock'] ?? false) {
             $query->where('stock', 0);
         }
 

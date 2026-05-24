@@ -3,7 +3,6 @@
 import * as React from "react"
 import { Label, Pie, PieChart, Sector } from "recharts"
 import type {
-  PieSectorDataItem,
   PieSectorShapeProps,
 } from "recharts/types/polar/Pie"
 
@@ -29,61 +28,80 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export const description = "An interactive pie chart"
+export const description = "An interactive pie chart showing renters by status"
 
-const desktopData = [
-  { month: "january", desktop: 186, fill: "var(--color-january)" },
-  { month: "february", desktop: 305, fill: "var(--color-february)" },
-  { month: "march", desktop: 237, fill: "var(--color-march)" },
-  { month: "april", desktop: 173, fill: "var(--color-april)" },
-  { month: "may", desktop: 209, fill: "var(--color-may)" },
-]
+const monthNamesMap: Record<string, string> = {
+  january: "Januari",
+  february: "Februari",
+  march: "Maret",
+  april: "April",
+  may: "Mei",
+  june: "Juni",
+  july: "Juli",
+  august: "Agustus",
+  september: "September",
+  october: "Oktober",
+  november: "November",
+  december: "Desember",
+}
 
 const chartConfig = {
-  visitors: {
-    label: "Visitors",
+  renters: {
+    label: "Jumlah Penyewa",
   },
-  desktop: {
-    label: "Desktop",
+  active: {
+    label: "Aktif",
+    color: "hsl(217.2 91.2% 59.8%)", // Vibrant Royal Blue
   },
-  mobile: {
-    label: "Mobile",
+  returned: {
+    label: "Selesai",
+    color: "hsl(142.1 76.2% 36.3%)", // Vibrant Emerald Green
   },
-  january: {
-    label: "January",
-    color: "var(--chart-1)",
-  },
-  february: {
-    label: "February",
-    color: "var(--chart-2)",
-  },
-  march: {
-    label: "March",
-    color: "var(--chart-3)",
-  },
-  april: {
-    label: "April",
-    color: "var(--chart-4)",
-  },
-  may: {
-    label: "May",
-    color: "var(--chart-5)",
+  overdue: {
+    label: "Terlambat",
+    color: "hsl(0 84.2% 60.2%)", // Vibrant Red
   },
 } satisfies ChartConfig
 
-export function ChartPieInteractive() {
-  const id = "pie-interactive"
-  const [activeMonth, setActiveMonth] = React.useState(desktopData[0].month)
+interface ChartPieInteractiveProps {
+  pieData?: Array<{
+    month: string
+    active: number
+    returned: number
+    overdue: number
+    total: number
+  }>
+}
 
-  const activeIndex = React.useMemo(
-    () => desktopData.findIndex((item) => item.month === activeMonth),
-    [activeMonth]
-  )
-  const months = React.useMemo(() => desktopData.map((item) => item.month), [])
+export function ChartPieInteractive({ pieData = [] }: ChartPieInteractiveProps) {
+  const id = "pie-interactive"
+  const [activeMonth, setActiveMonth] = React.useState("")
+  const [activeSliceIndex, setActiveSliceIndex] = React.useState(0)
+
+  React.useEffect(() => {
+    if (pieData.length > 0 && !activeMonth) {
+      setActiveMonth(pieData[pieData.length - 1].month)
+    }
+  }, [pieData, activeMonth])
+
+  const activeMonthRecord = React.useMemo(() => {
+    return pieData.find((item) => item.month === activeMonth)
+  }, [pieData, activeMonth])
+
+  const activeData = React.useMemo(() => {
+    if (!activeMonthRecord) return []
+    return [
+      { status: "active", count: activeMonthRecord.active, fill: "var(--color-active)" },
+      { status: "returned", count: activeMonthRecord.returned, fill: "var(--color-returned)" },
+      { status: "overdue", count: activeMonthRecord.overdue, fill: "var(--color-overdue)" },
+    ]
+  }, [activeMonthRecord])
+
+  const months = React.useMemo(() => pieData.map((item) => item.month), [pieData])
 
   const renderPieShape = React.useCallback(
     ({ index, outerRadius = 0, ...props }: PieSectorShapeProps) => {
-      if (index === activeIndex) {
+      if (index === activeSliceIndex) {
         return (
           <g>
             <Sector {...props} outerRadius={outerRadius + 10} />
@@ -98,7 +116,14 @@ export function ChartPieInteractive() {
 
       return <Sector {...props} outerRadius={outerRadius} />
     },
-    [activeIndex]
+    [activeSliceIndex]
+  )
+
+  const handlePieEnter = React.useCallback(
+    (_: any, index: number) => {
+      setActiveSliceIndex(index)
+    },
+    [setActiveSliceIndex]
   )
 
   return (
@@ -106,24 +131,22 @@ export function ChartPieInteractive() {
       <ChartStyle id={id} config={chartConfig} />
       <CardHeader className="flex-row items-start space-y-0 pb-0">
         <div className="grid gap-1">
-          <CardTitle>Pie Chart - Interactive</CardTitle>
-          <CardDescription>January - June 2024</CardDescription>
+          <CardTitle>Status Penyewa</CardTitle>
+          <CardDescription>Pembagian penyewa aktif, selesai, dan terlambat</CardDescription>
         </div>
-        <Select value={activeMonth} onValueChange={setActiveMonth}>
+        <Select value={activeMonth} onValueChange={(val) => {
+          setActiveMonth(val)
+          setActiveSliceIndex(0) // reset active slice index
+        }}>
           <SelectTrigger
-            className="ml-auto h-7 w-32.5 rounded-lg pl-2.5"
-            aria-label="Select a value"
+            className="ml-auto h-7 w-36.5 rounded-lg pl-2.5"
+            aria-label="Pilih bulan"
           >
-            <SelectValue placeholder="Select month" />
+            <SelectValue placeholder="Pilih Bulan" />
           </SelectTrigger>
           <SelectContent align="end" className="rounded-xl">
             {months.map((key) => {
-              const config = chartConfig[key as keyof typeof chartConfig]
-
-              if (!config) {
-                return null
-              }
-
+              const displayLabel = monthNamesMap[key] || key
               return (
                 <SelectItem
                   key={key}
@@ -131,13 +154,7 @@ export function ChartPieInteractive() {
                   className="rounded-lg [&_span]:flex"
                 >
                   <div className="flex items-center gap-2 text-xs">
-                    <span
-                      className="flex h-3 w-3 shrink-0 rounded-xs"
-                      style={{
-                        backgroundColor: `var(--color-${key})`,
-                      }}
-                    />
-                    {config?.label}
+                    {displayLabel}
                   </div>
                 </SelectItem>
               )
@@ -157,16 +174,18 @@ export function ChartPieInteractive() {
               content={<ChartTooltipContent hideLabel />}
             />
             <Pie
-              data={desktopData}
-              dataKey="desktop"
-              nameKey="month"
+              data={activeData}
+              dataKey="count"
+              nameKey="status"
               innerRadius={60}
               strokeWidth={5}
               shape={renderPieShape}
+              onMouseEnter={handlePieEnter}
             >
               <Label
                 content={({ viewBox }) => {
                   if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                    const totalRenters = activeMonthRecord ? activeMonthRecord.total : 0
                     return (
                       <text
                         x={viewBox.cx}
@@ -179,14 +198,14 @@ export function ChartPieInteractive() {
                           y={viewBox.cy}
                           className="fill-foreground text-3xl font-bold"
                         >
-                          {desktopData[activeIndex].desktop.toLocaleString()}
+                          {totalRenters.toLocaleString()}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          Visitors
+                          Penyewa
                         </tspan>
                       </text>
                     )
@@ -194,7 +213,6 @@ export function ChartPieInteractive() {
                   return null
                 }}
               />
-
             </Pie>
           </PieChart>
         </ChartContainer>

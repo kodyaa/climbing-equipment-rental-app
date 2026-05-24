@@ -69,6 +69,20 @@ class AnalyticsTest extends TestCase
             ->where('radarData.0.rentals', 2)
             ->where('radarData.1.category', 'Backpack')
             ->where('radarData.1.rentals', 0)
+            ->has('chartData')
+            // Assert we have exactly 91 data points (90 days ago + today)
+            ->has('chartData', 91)
+            // Verify that today's entry has 30000 for cash (since our rental was today)
+            ->where('chartData.90.cash', 30000)
+            ->where('chartData.90.qris', 0)
+            ->has('pieData')
+            // Assert we have exactly 6 months of data
+            ->has('pieData', 6)
+            // Verify that the current month's entry (index 5) has 1 active rental
+            ->where('pieData.5.active', 1)
+            ->where('pieData.5.returned', 0)
+            ->where('pieData.5.overdue', 0)
+            ->where('pieData.5.total', 1)
         );
     }
 }

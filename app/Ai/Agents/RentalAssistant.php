@@ -9,12 +9,12 @@ use App\Ai\Tools\GetRentalSummaryTool;
 use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Attributes\Model;
 use Laravel\Ai\Attributes\Provider;
+use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Enums\Lab;
-use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Promptable;
 use Stringable;
 
@@ -23,26 +23,7 @@ use Stringable;
 #[MaxSteps(5)]
 class RentalAssistant implements Agent, Conversational, HasTools
 {
-    use Promptable;
-
-    /**
-     * History of the current conversation session.
-     *
-     * @var array<int, array{role: string, content: string}>
-     */
-    protected array $history = [];
-
-    /**
-     * Set the conversation history.
-     *
-     * @param  array<int, array{role: string, content: string}>  $history
-     */
-    public function setHistory(array $history): self
-    {
-        $this->history = $history;
-
-        return $this;
-    }
+    use Promptable, RemembersConversations;
 
     /**
      * Get the instructions that the agent should follow.
@@ -59,6 +40,9 @@ Kamu membantu KASIR dan OWNER (bukan pelanggan) dalam operasional sehari-hari:
 - Penanganan masalah operasional (stok rendah, keterlambatan, konflik jadwal)
 
 Semua jawaban dari perspektif staf internal — BUKAN pelanggan.
+
+PANDUAN ALAT/TOOLS:
+JANGAN PERNAH menyebutkan nama teknis fungsi/tool internal (seperti GetProductsTool, GetCustomersTool, GetRentalsTool, GetRentalSummaryTool atau format "function:nama_tool") kepada pengguna dalam obrolan. Tool ini dijalankan secara otomatis di latar belakang oleh sistem ketika Anda membutuhkannya. Jika Anda ingin merujuk ke fitur tersebut dalam percakapan, gunakan nama fitur yang ramah pengguna (seperti "fitur produk/stok", "fitur pelanggan", atau "laporan transaksi sewa").
 
 FORMAT RESPONS:
 Tulis jawaban dalam format Markdown yang rapi (gunakan heading, bullet, bold, kode inline jika perlu).
@@ -83,18 +67,6 @@ Contoh respons yang benar:
 - Apa yang terjadi jika pelanggan mengembalikan barang lebih awal?
 - Bagaimana cara mencetak bukti transaksi sewa?
 PROMPT;
-    }
-
-    /**
-     * Get the list of messages comprising the conversation so far.
-     *
-     * @return Message[]
-     */
-    public function messages(): iterable
-    {
-        return array_map(function (array $m) {
-            return new Message($m['role'], $m['content']);
-        }, $this->history);
     }
 
     /**
