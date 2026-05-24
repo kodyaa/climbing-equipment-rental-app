@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
+
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -41,16 +43,8 @@ import {
   ChevronDownIcon,
   MoreHorizontalIcon
 } from "lucide-react"
+import { Account, PERMISSION_META } from "@/types/account"
 
-interface Account {
-  id: number
-  name: string
-  email: string
-  phone: string
-  country: string
-  address: string
-  avatar: string | null
-}
 
 interface PaginatedData<T> {
   data: T[]
@@ -276,6 +270,7 @@ export function AccountTable({
                 </TableHead>
               )}
               {visibleColumns.location && <TableHead className="font-semibold">Location</TableHead>}
+              {visibleColumns.location && <TableHead className="font-semibold">Permission</TableHead>}
               {visibleColumns.actions && <TableHead className="text-right pr-4 font-semibold">Actions</TableHead>}
             </TableRow>
           </TableHeader>
@@ -302,11 +297,19 @@ export function AccountTable({
                           <CircleUserRoundIcon className="size-5 text-neutral-400" />
                         )}
                       </div>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col gap-1">
                         <span className="font-medium text-foreground leading-none">{acc.name}</span>
-                        <span className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-bold">
-                          {acc.email.includes("admin") ? "Admin" : "Cashier"}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {acc.role === "owner" ? (
+                            <Badge variant="secondary" className="text-[9px] font-bold px-1.5 py-0 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10">
+                              OWNER
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[9px] font-bold px-1.5 py-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10">
+                              KASIR
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -324,6 +327,30 @@ export function AccountTable({
                         <span className="text-xs uppercase font-bold">{acc.country}</span>
                         <span className="text-xs text-muted-foreground truncate max-w-37.5">{acc.address || "-"}</span>
                       </div>
+                    </TableCell>
+                  )}
+                  {visibleColumns.location && (
+                    <TableCell>
+                      {acc.role === "owner" ? (
+                        <span className="text-xs font-semibold text-violet-500 dark:text-violet-400 italic">
+                          Akses Penuh
+                        </span>
+                      ) : acc.permissions && acc.permissions.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 max-w-72">
+                          {acc.permissions.map((perm) => {
+                            const meta = PERMISSION_META[perm]
+                            return (
+                              <span key={perm} className="text-[10px] font-medium px-1.5 py-0.5 bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 rounded-sm border border-neutral-200 dark:border-neutral-700">
+                                {meta ? meta.label : perm}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">
+                          Tidak ada izin
+                        </span>
+                      )}
                     </TableCell>
                   )}
                   {visibleColumns.actions && (

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { router } from "@inertiajs/react"
+import { router, usePage } from "@inertiajs/react"
 import {
   Table,
   TableBody,
@@ -75,6 +75,22 @@ export function CustomerTable({
   handleDelete,
   handleCreate,
 }: CustomerTableProps) {
+  const { auth } = usePage<{
+    auth?: {
+      user?: {
+        role?: string
+        permissions?: string[]
+      }
+    }
+  }>().props
+
+  const role = auth?.user?.role || "kasir"
+  const permissions = auth?.user?.permissions || []
+
+  const canCreate = role === "owner" || permissions.includes("customers.create")
+  const canUpdate = role === "owner" || permissions.includes("customers.update")
+  const canDelete = role === "owner" || permissions.includes("customers.delete")
+
   const [searchVal, setSearchVal] = React.useState(filters.search || "")
   const [visibleColumns, setVisibleColumns] = React.useState({
     phone: true,
@@ -239,10 +255,12 @@ export function CustomerTable({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button onClick={handleCreate} className="flex items-center gap-1.5 text-xs">
-            <UserPlusIcon className="size-4" />
-            Add Customer
-          </Button>
+          {canCreate && (
+            <Button onClick={handleCreate} className="flex items-center gap-1.5 text-xs">
+              <UserPlusIcon className="size-4" />
+              Add Customer
+            </Button>
+          )}
         </div>
       </div>
 
@@ -357,53 +375,61 @@ export function CustomerTable({
                   )}
                   {visibleColumns.actions && (
                     <TableCell className="text-right pr-4">
-                      <AlertDialog>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon-xs" className="size-8 p-0">
-                              <MoreHorizontalIcon className="size-4 text-muted-foreground" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-36">
-                            <DropdownMenuItem onClick={() => handleEdit(cust)}>
-                              <PencilIcon className="size-3.5 mr-2 text-muted-foreground" />
-                              Edit Customer
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onSelect={(e) => e.preventDefault()}
-                              >
-                                <Trash2Icon className="size-3.5 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      {(canUpdate || canDelete) ? (
+                        <AlertDialog>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon-xs" className="size-8 p-0">
+                                <MoreHorizontalIcon className="size-4 text-muted-foreground" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-36">
+                              {canUpdate && (
+                                <DropdownMenuItem onClick={() => handleEdit(cust)}>
+                                  <PencilIcon className="size-3.5 mr-2 text-muted-foreground" />
+                                  Edit Customer
+                                </DropdownMenuItem>
+                              )}
+                              {canUpdate && canDelete && <DropdownMenuSeparator />}
+                              {canDelete && (
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onSelect={(e) => e.preventDefault()}
+                                  >
+                                    <Trash2Icon className="size-3.5 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
 
-                        <AlertDialogContent size="sm">
-                          <AlertDialogHeader>
-                            <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
-                              <Trash2Icon />
-                            </AlertDialogMedia>
-                            <AlertDialogTitle>Delete Customer?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete &ldquo;{cust.name}&rdquo;? All rental history linked to this customer might be affected.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel variant="outline">Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              variant="destructive"
-                              onClick={() => handleDelete(cust.id)}
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                          <AlertDialogContent size="sm">
+                            <AlertDialogHeader>
+                              <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+                                <Trash2Icon />
+                              </AlertDialogMedia>
+                              <AlertDialogTitle>Delete Customer?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete &ldquo;{cust.name}&rdquo;? All rental history linked to this customer might be affected.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel variant="outline">Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                variant="destructive"
+                                onClick={() => handleDelete(cust.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground italic pl-2">No actions</span>
+                      )}
                     </TableCell>
                   )}
                 </TableRow>

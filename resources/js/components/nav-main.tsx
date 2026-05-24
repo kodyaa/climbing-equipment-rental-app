@@ -36,7 +36,7 @@ export function NavMain({
                   className={cn(
                     "transition-all duration-200",
                     isActive
-                      ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-semibold shadow-xs"
+                      ? "data-active:bg-neutral-900 data-active:text-white data-active:dark:bg-white data-active:dark:text-neutral-950 font-semibold shadow-xs"
                       : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   )}
                   asChild

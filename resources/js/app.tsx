@@ -1,8 +1,4 @@
-import { configureEcho } from '@laravel/echo-react';
-
-configureEcho({
-    broadcaster: 'reverb',
-});
+import { configureEcho } from '@laravel/echo-react'
 import * as React from 'react'
 import { createInertiaApp, router } from '@inertiajs/react'
 import { createRoot } from 'react-dom/client'
@@ -10,6 +6,8 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
+
+configureEcho({ broadcaster: 'reverb' })
 
 // Remove any previously registered listener before adding a new one.
 // window persists across Vite HMR module reloads, unlike module-level variables.

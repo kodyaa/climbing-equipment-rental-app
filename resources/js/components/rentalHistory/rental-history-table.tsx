@@ -1,5 +1,5 @@
 import * as React from "react"
-import { router } from "@inertiajs/react"
+import { router, usePage } from "@inertiajs/react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
@@ -152,6 +152,21 @@ export function RentalHistoryTable({
   onCancel,
   onView,
 }: RentalHistoryTableProps) {
+  const { auth } = usePage<{
+    auth?: {
+      user?: {
+        role?: string
+        permissions?: string[]
+      }
+    }
+  }>().props
+
+  const role = auth?.user?.role || "kasir"
+  const permissions = auth?.user?.permissions || []
+
+  const canReturn = role === "owner" || permissions.includes("rentals.return")
+  const canCancel = role === "owner" || permissions.includes("rentals.cancel")
+
   const [searchVal, setSearchVal] = React.useState(filters.search || "")
   const [statusFilter, setStatusFilter] = React.useState(filters.status || "all")
   const [sortBy, setSortBy] = React.useState(filters.sort || "id")
@@ -308,21 +323,25 @@ export function RentalHistoryTable({
                         <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onView(rental)}>
                           <EyeIcon className="size-4" /> View Details
                         </DropdownMenuItem>
-                        {(rental.status === "active" || rental.status === "overdue") && (
+                        {(rental.status === "active" || rental.status === "overdue") && (canReturn || canCancel) && (
                           <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="cursor-pointer gap-2 text-green-600 focus:text-green-600"
-                              onClick={() => onReturn(rental)}
-                            >
-                              <RotateCcwIcon className="size-4" /> Mark Returned
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="cursor-pointer gap-2 text-destructive focus:text-destructive"
-                              onClick={() => onCancel(rental)}
-                            >
-                              <XCircleIcon className="size-4" /> Cancel
-                            </DropdownMenuItem>
+                            {canReturn && (
+                              <DropdownMenuItem
+                                className="cursor-pointer gap-2 text-green-600 focus:text-green-600"
+                                onClick={() => onReturn(rental)}
+                              >
+                                <RotateCcwIcon className="size-4" /> Mark Returned
+                              </DropdownMenuItem>
+                            )}
+                            {canCancel && (
+                              <DropdownMenuItem
+                                className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                                onClick={() => onCancel(rental)}
+                              >
+                                <XCircleIcon className="size-4" /> Cancel
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
                       </DropdownMenuContent>

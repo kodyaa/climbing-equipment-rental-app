@@ -69,7 +69,7 @@ export function NavRentals({
                       className={cn(
                         "transition-all duration-200",
                         isActive
-                          ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 font-semibold"
+                          ? "data-active:bg-neutral-900 data-active:text-white data-active:dark:bg-white data-active:dark:text-neutral-950 font-semibold shadow-xs [&>svg]:text-current"
                           : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
                     >

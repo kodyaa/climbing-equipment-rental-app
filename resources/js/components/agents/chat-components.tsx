@@ -243,3 +243,26 @@ export function TypingIndicator() {
     </div>
   )
 }
+
+// ─── Streaming Bubble ─────────────────────────────────────────────────────────
+
+/**
+ * Live typing bubble shown while the SSE stream is in progress.
+ * Renders the accumulated text with Markdown and a blinking cursor.
+ */
+export function StreamingBubble({ content }: { content: string }) {
+  return (
+    <div className="flex gap-3 max-w-[88%] mr-auto">
+      <BotAvatar />
+      <div className="rounded-lg px-3 py-2.5 text-sm bg-muted text-foreground">
+        {content ? (
+          <MarkdownContent content={content} />
+        ) : (
+          <span className="italic text-muted-foreground">Mengetik</span>
+        )}
+        {/* Blinking cursor */}
+        <span className="inline-block w-0.5 h-3.5 bg-violet-500 ml-0.5 align-middle animate-pulse" />
+      </div>
+    </div>
+  )
+}

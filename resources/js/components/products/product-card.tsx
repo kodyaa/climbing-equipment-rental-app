@@ -1,4 +1,5 @@
 import * as React from "react"
+import { usePage } from "@inertiajs/react"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -48,6 +49,16 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
+  const { auth } = usePage<{
+    auth?: {
+      user?: {
+        role?: string
+      }
+    }
+  }>().props
+
+  const isOwner = auth?.user?.role === "owner"
+
   const getStatusDetails = (status: string) => {
     switch (status) {
       case "available":
@@ -98,8 +109,9 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
         </Badge>
 
         {/* Actions Dropdown + Delete Alert Dialog */}
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
-          <AlertDialog>
+        {isOwner && (
+          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
+            <AlertDialog>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -152,6 +164,7 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
             </AlertDialogContent>
           </AlertDialog>
         </div>
+        )}
       </div>
 
       {/* Card Header — name, description, status badge */}

@@ -40,7 +40,14 @@ class LoginController extends Controller
         if (Auth::attempt([$fieldType => $credentials['login'], 'password' => $credentials['password']], $remember)) {
             $request->session()->regenerate();
 
-            return redirect()->intended('/dashboard');
+            $user = Auth::user();
+            if ($user->hasRole('owner')) {
+                return redirect()->intended('/dashboard');
+            } elseif ($user->hasRole('kasir')) {
+                return redirect()->intended('/rentals');
+            }
+
+            abort(403, 'User does not have the right roles.');
         }
 
         throw ValidationException::withMessages([

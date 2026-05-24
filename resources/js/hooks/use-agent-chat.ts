@@ -1,5 +1,4 @@
 import * as React from "react"
-import { useEcho } from "@laravel/echo-react"
 import {
   AiChatSession,
   AiMessage,
@@ -8,14 +7,26 @@ import {
   saveAiSessions,
 } from "@/types/ai"
 
+// ─── SSE event shape from /ai/stream ─────────────────────────────────────────
+
+type SseEvent =
+  | { type: "step"; step: string }
+  | { type: "start" }
+  | { type: "chunk"; text: string }
+  | { type: "done"; suggestions: string[] }
+  | { type: "error"; message: string }
+
+// ─── Hook interface ───────────────────────────────────────────────────────────
+
 interface UseAgentChatOptions {
-  userId: number | undefined
+  userId?: number
 }
 
 interface UseAgentChatReturn {
   sessions: AiChatSession[]
   activeSessionId: string
   messages: AiMessage[]
+  streamingContent: string | null   // null = not streaming; string = current streamed text
   input: string
   isLoading: boolean
   reasoningSteps: string[]
@@ -28,23 +39,23 @@ interface UseAgentChatReturn {
   handleDeleteSession: (id: string, e: React.MouseEvent) => void
 }
 
-export function useAgentChat({ userId }: UseAgentChatOptions): UseAgentChatReturn {
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
+export function useAgentChat({ userId }: UseAgentChatOptions = {}): UseAgentChatReturn {
   const [sessions, setSessions] = React.useState<AiChatSession[]>([])
   const [activeSessionId, setActiveSessionId] = React.useState<string>("")
   const [input, setInput] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
   const [reasoningSteps, setReasoningSteps] = React.useState<string[]>([])
+  const [streamingContent, setStreamingContent] = React.useState<string | null>(null)
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
 
-  // Refs to avoid stale closures inside Echo callback without triggering re-subscription
+  // Refs for stable access inside async callbacks without triggering re-renders
   const activeSessionIdRef = React.useRef(activeSessionId)
   React.useEffect(() => { activeSessionIdRef.current = activeSessionId }, [activeSessionId])
 
-  // Track the current pending requestId — only process Echo events that match
-  const pendingRequestIdRef = React.useRef<string | null>(null)
-
-  // Guard against duplicate "completed" processing (React StrictMode double-invoke)
-  const completedRequestIds = React.useRef<Set<string>>(new Set())
+  // Abort controller ref — lets us cancel an in-flight stream on unmount/retry
+  const abortControllerRef = React.useRef<AbortController | null>(null)
 
   // Load sessions on mount
   React.useEffect(() => {
@@ -53,18 +64,15 @@ export function useAgentChat({ userId }: UseAgentChatOptions): UseAgentChatRetur
     setActiveSessionId(loaded[0].id)
   }, [])
 
-  // Auto-scroll on new messages / reasoning
+  // Auto-scroll when content changes
   React.useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [sessions, reasoningSteps, isLoading])
+  }, [sessions, reasoningSteps, streamingContent, isLoading])
 
   const activeSession = sessions.find((s) => s.id === activeSessionId)
   const messages = activeSession?.messages ?? []
 
-  /**
-   * Stable append — reads sessionId from ref at call-time so it never goes stale
-   * even without being listed in Echo's dependency array.
-   */
+  /** Append a completed message into the active session (stable — reads sessionId from ref) */
   const appendMessageStable = React.useCallback((newMsg: AiMessage) => {
     setSessions((prev) => {
       const sessionId = activeSessionIdRef.current
@@ -76,94 +84,113 @@ export function useAgentChat({ userId }: UseAgentChatOptions): UseAgentChatRetur
       saveAiSessions(updated)
       return updated
     })
-  }, []) // intentionally no deps — reads refs at runtime
+  }, [])
 
-  // Real-time Echo listener
-  // Only depends on [userId] to prevent re-subscription on every session switch.
-  // Deduplication via requestId prevents the double-fire caused by React StrictMode.
-  useEcho(
-    userId ? `ai-chat.${userId}` : "",
-    ".reasoning.updated",
-    (e: {
-      step: string
-      status: "thinking" | "completed" | "error"
-      response: string | null
-      suggestions?: string[]
-      requestId?: string
-    }) => {
-      // Ignore events that don't belong to the current pending request
-      if (e.requestId && pendingRequestIdRef.current && e.requestId !== pendingRequestIdRef.current) {
-        return
-      }
-
-      if (e.status === "thinking") {
-        setReasoningSteps((prev) => (prev.includes(e.step) ? prev : [...prev, e.step]))
-        return
-      }
-
-      // "completed" or "error" — guard against double-processing
-      const dedupeKey = e.requestId ?? `${e.status}-${e.response?.slice(0, 40)}`
-      if (completedRequestIds.current.has(dedupeKey)) {
-        return // already processed — drop the duplicate
-      }
-      completedRequestIds.current.add(dedupeKey)
-      // Auto-clear after 10 s so memory doesn't grow indefinitely
-      setTimeout(() => completedRequestIds.current.delete(dedupeKey), 10_000)
-
-      setReasoningSteps([])
-      setIsLoading(false)
-      pendingRequestIdRef.current = null
-
-      if (e.response) {
-        appendMessageStable({
-          role: "assistant",
-          content: e.response,
-          isError: e.status === "error",
-          suggestions: e.suggestions ?? [],
-        })
-      }
-    },
-    [userId] // ← do NOT add activeSessionId here
-  )
-
-  /** Post the message to the server */
-  async function dispatchToServer(requestId: string, text: string, history: AiMessage[]) {
+  /** Read and process the /ai/stream SSE response */
+  async function consumeStream(
+    text: string,
+    snapshot: AiMessage[],
+    signal: AbortSignal
+  ) {
     const csrfToken =
       document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? ""
-    const response = await fetch("/ai/chat", {
+
+    const response = await fetch("/ai/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrfToken },
       body: JSON.stringify({
-        requestId,
         message: text,
-        history: history.map(({ role, content }) => ({ role, content })),
+        history: snapshot.map(({ role, content }) => ({ role, content })),
       }),
+      signal,
     })
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}))
-      throw new Error(data.response ?? "Terjadi kesalahan sistem.")
+
+    if (!response.ok || !response.body) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+    let accumulated = ""
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+
+      // SSE lines are separated by \n\n; keep the incomplete last chunk in buffer
+      const lines = buffer.split("\n")
+      buffer = lines.pop() ?? ""
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue
+        const raw = line.slice(6).trim()
+        if (!raw) continue
+
+        let event: SseEvent
+        try {
+          event = JSON.parse(raw) as SseEvent
+        } catch {
+          continue
+        }
+
+        if (event.type === "step") {
+          setReasoningSteps((prev) => (prev.includes(event.step) ? prev : [...prev, event.step]))
+
+        } else if (event.type === "start") {
+          setReasoningSteps([])
+          setStreamingContent("")   // open the live bubble
+
+        } else if (event.type === "chunk") {
+          accumulated += event.text
+          setStreamingContent(accumulated)
+
+        } else if (event.type === "done") {
+          setStreamingContent(null)
+          setIsLoading(false)
+          appendMessageStable({
+            role: "assistant",
+            content: accumulated,
+            suggestions: event.suggestions,
+          })
+          return
+
+        } else if (event.type === "error") {
+          setStreamingContent(null)
+          setIsLoading(false)
+          appendMessageStable({ role: "assistant", content: event.message, isError: true })
+          return
+        }
+      }
     }
   }
 
-  /** Core send — snapshot prevents stale closure issues */
+  /** Core send — adds user message then opens SSE stream */
   async function sendWithHistory(text: string, snapshot: AiMessage[]) {
-    const requestId = crypto.randomUUID()
-    pendingRequestIdRef.current = requestId
+    // Cancel any ongoing stream
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     setInput("")
     setReasoningSteps(["Menerima input Anda..."])
     setIsLoading(true)
+    setStreamingContent(null)
 
     try {
-      await dispatchToServer(requestId, text, snapshot.slice(0, -1))
-    } catch {
+      // snapshot already contains the new user message at the end
+      await consumeStream(text, snapshot.slice(0, -1), controller.signal)
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return // intentional cancel
+
+      setStreamingContent(null)
       setIsLoading(false)
       setReasoningSteps([])
-      pendingRequestIdRef.current = null
       appendMessageStable({
         role: "assistant",
-        content:
-          "Koneksi ke asisten AI terputus. Pastikan server Ollama dengan model qwen2.5:3b Anda aktif.",
+        content: "Koneksi ke asisten AI terputus. Pastikan server Ollama dengan model qwen2.5:3b Anda aktif.",
         isError: true,
       })
     }
@@ -180,9 +207,7 @@ export function useAgentChat({ userId }: UseAgentChatOptions): UseAgentChatRetur
         if (session.id !== activeSessionId) return session
         const title =
           session.messages.length <= 1
-            ? textToSend.length > 22
-              ? `${textToSend.slice(0, 22)}...`
-              : textToSend
+            ? textToSend.length > 22 ? `${textToSend.slice(0, 22)}...` : textToSend
             : session.title
         updatedMessages = [...session.messages, userMessage]
         return { ...session, title, messages: updatedMessages }
@@ -196,6 +221,7 @@ export function useAgentChat({ userId }: UseAgentChatOptions): UseAgentChatRetur
 
   const handleRetry = async (text: string) => {
     if (isLoading) return
+
     setSessions((prev) => {
       const updated = prev.map((session) => {
         if (session.id !== activeSessionId) return session
@@ -206,6 +232,7 @@ export function useAgentChat({ userId }: UseAgentChatOptions): UseAgentChatRetur
       saveAiSessions(updated)
       return updated
     })
+
     const cleanMessages = messages.filter((m) => !m.isError)
     const userMessage: AiMessage = { role: "user", content: text }
     await sendWithHistory(text, [...cleanMessages, userMessage])
@@ -241,10 +268,16 @@ export function useAgentChat({ userId }: UseAgentChatOptions): UseAgentChatRetur
     })
   }
 
+  // Abort any in-flight stream when unmounting
+  React.useEffect(() => {
+    return () => { abortControllerRef.current?.abort() }
+  }, [])
+
   return {
     sessions,
     activeSessionId,
     messages,
+    streamingContent,
     input,
     isLoading,
     reasoningSteps,

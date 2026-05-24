@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\RentalStatusChanged;
+use App\Events\StockLowAlert;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Rental;
@@ -98,9 +100,12 @@ class RentalsController extends Controller
             'items.*.duration_days' => ['required', 'integer', 'min:1'],
         ]);
 
-        DB::transaction(function () use ($validated, $request) {
+        $rental = null;
+
+        DB::transaction(function () use ($validated, $request, &$rental) {
             $totalPrice = 0;
             $itemsData = [];
+            $stockAlerts = [];
 
             foreach ($validated['items'] as $item) {
                 $product = Product::findOrFail($item['product_id']);
@@ -120,6 +125,16 @@ class RentalsController extends Controller
                     'price_per_day' => $product->price_per_day,
                     'subtotal' => $subtotal,
                 ];
+
+                // Collect products whose stock dropped to 5 or below
+                if ($product->stock > 0 && $product->stock <= 5) {
+                    $stockAlerts[] = [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'category' => $product->category,
+                        'stock' => $product->stock,
+                    ];
+                }
             }
 
             $discount = $validated['discount'] ?? 0;
@@ -144,7 +159,21 @@ class RentalsController extends Controller
             ]);
 
             $rental->items()->createMany($itemsData);
+
+            // Dispatch stock alerts inside transaction (accurate stock values)
+            foreach ($stockAlerts as $alertData) {
+                StockLowAlert::dispatch($alertData);
+            }
         });
+
+        // Dispatch real-time rental status event
+        $customer = Customer::find($validated['customer_id']);
+        RentalStatusChanged::dispatch(
+            $rental->rental_code,
+            $customer?->name ?? 'Pelanggan',
+            'created',
+            'active'
+        );
 
         return redirect()->back()->with('success', 'Rental transaction created successfully.');
     }
@@ -172,6 +201,13 @@ class RentalsController extends Controller
             ]);
         });
 
+        RentalStatusChanged::dispatch(
+            $rental->rental_code,
+            $rental->customer?->name ?? 'Pelanggan',
+            'returned',
+            'returned'
+        );
+
         return redirect()->back()->with('success', "Rental {$rental->rental_code} marked as returned.");
     }
 
@@ -196,6 +232,13 @@ class RentalsController extends Controller
 
             $rental->update(['status' => 'cancelled']);
         });
+
+        RentalStatusChanged::dispatch(
+            $rental->rental_code,
+            $rental->customer?->name ?? 'Pelanggan',
+            'cancelled',
+            'cancelled'
+        );
 
         return redirect()->back()->with('success', "Rental {$rental->rental_code} has been cancelled.");
     }

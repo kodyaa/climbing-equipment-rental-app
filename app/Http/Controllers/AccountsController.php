@@ -32,6 +32,7 @@ class AccountsController extends Controller
         }
 
         $accounts = User::query()
+            ->with(['roles', 'permissions'])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -40,10 +41,22 @@ class AccountsController extends Controller
             })
             ->orderBy($sort, $direction)
             ->paginate(5)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(fn ($u) => array_merge($u->toArray(), [
+                'role' => $u->roles->first()?->name ?? 'kasir',
+                'permissions' => $u->permissions->pluck('name')->toArray(),
+            ]));
+
+        // All kasir permissions for the checkbox list
+        $kasirPermissions = [
+            'products.view', 'customers.view', 'customers.create',
+            'customers.update', 'customers.delete', 'rentals.view',
+            'rentals.create', 'rentals.return', 'rentals.cancel',
+        ];
 
         return Inertia::render('Accounts', [
             'accounts' => Inertia::defer(fn () => $accounts),
+            'kasirPermissions' => $kasirPermissions,
             'filters' => [
                 'search' => $search,
                 'sort' => $sort,
@@ -65,6 +78,9 @@ class AccountsController extends Controller
             'address' => ['required', 'string', 'max:255'],
             'avatar' => $request->hasFile('avatar') ? ['image', 'max:2048'] : ['nullable', 'string'],
             'password' => ['nullable', 'string', 'min:8'],
+            'role' => ['nullable', 'string', 'in:owner,kasir'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string'],
         ]);
 
         $avatarUrl = null;
@@ -76,7 +92,7 @@ class AccountsController extends Controller
             $avatarUrl = $validated['avatar'];
         }
 
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'],
@@ -85,6 +101,20 @@ class AccountsController extends Controller
             'avatar' => $avatarUrl,
             'password' => Hash::make($validated['password'] ?? 'password'),
         ]);
+
+        $role = $validated['role'] ?? 'kasir';
+        $user->assignRole($role);
+
+        // For kasir role, sync custom permissions if provided
+        if ($role === 'kasir' && ! empty($validated['permissions'])) {
+            $allowed = [
+                'products.view', 'customers.view', 'customers.create',
+                'customers.update', 'customers.delete', 'rentals.view',
+                'rentals.create', 'rentals.return', 'rentals.cancel',
+            ];
+            $permissions = array_intersect($validated['permissions'], $allowed);
+            $user->syncPermissions($permissions);
+        }
 
         return redirect()->back()->with('success', 'Account created successfully!');
     }
@@ -102,6 +132,9 @@ class AccountsController extends Controller
             'address' => ['required', 'string', 'max:255'],
             'avatar' => $request->hasFile('avatar') ? ['image', 'max:2048'] : ['nullable', 'string'],
             'password' => ['nullable', 'string', 'min:8'],
+            'role' => ['nullable', 'string', 'in:owner,kasir'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string'],
         ]);
 
         $user->name = $validated['name'];
@@ -134,6 +167,24 @@ class AccountsController extends Controller
         }
 
         $user->save();
+
+        // Sync role
+        $role = $validated['role'] ?? ($user->roles->first()?->name ?? 'kasir');
+        $user->syncRoles([$role]);
+
+        // For kasir, sync custom permissions if provided
+        if ($role === 'kasir' && ! empty($validated['permissions'])) {
+            $allowed = [
+                'products.view', 'customers.view', 'customers.create',
+                'customers.update', 'customers.delete', 'rentals.view',
+                'rentals.create', 'rentals.return', 'rentals.cancel',
+            ];
+            $permissions = array_intersect($validated['permissions'], $allowed);
+            $user->syncPermissions($permissions);
+        } elseif ($role === 'owner') {
+            // Owner gets all permissions via role, clear any direct user permissions
+            $user->syncPermissions([]);
+        }
 
         return redirect()->back()->with('success', 'Account updated successfully!');
     }

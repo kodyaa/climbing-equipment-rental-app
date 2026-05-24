@@ -138,7 +138,7 @@ export function AvatarConfig({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center md:w-1/3 border-b md:border-b-0 md:border-r pb-6 md:pb-0 md:pr-6 gap-4">
+    <div className="flex flex-col items-center justify-start w-full gap-4">
       <div className="flex items-center gap-3 w-full justify-center">
         {avatarMode === "micah" && (
           <Button

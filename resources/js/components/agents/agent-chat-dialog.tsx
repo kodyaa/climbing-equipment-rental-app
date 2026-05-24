@@ -21,7 +21,7 @@ import {
 } from "lucide-react"
 import { usePage } from "@inertiajs/react"
 import { useAgentChat } from "@/hooks/use-agent-chat"
-import { MessageBubble, ReasoningSteps, TypingIndicator } from "./chat-components"
+import { BotAvatar, MessageBubble, ReasoningSteps, StreamingBubble, TypingIndicator } from "./chat-components"
 import { AI_QUICK_PROMPTS, AiChatSession } from "@/types/ai"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -45,6 +45,7 @@ export function AgentChatDialog() {
     sessions,
     activeSessionId,
     messages,
+    streamingContent,
     input,
     isLoading,
     reasoningSteps,
@@ -68,7 +69,6 @@ export function AgentChatDialog() {
 
   const handleRetryFromMessage = async (text: string) => {
     if (!text) {
-      // Error assistant bubble — re-send the last user message
       const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")
       if (lastUserMsg) await handleRetry(lastUserMsg.content)
     } else {
@@ -121,16 +121,25 @@ export function AgentChatDialog() {
                 />
               ))}
 
-              {isLoading && reasoningSteps.length > 0 && (
+              {/* Reasoning steps */}
+              {isLoading && reasoningSteps.length > 0 && streamingContent === null && (
                 <ReasoningSteps steps={reasoningSteps} isLoading={isLoading} />
               )}
 
-              {isLoading && reasoningSteps.length === 0 && <TypingIndicator />}
+              {/* Typing indicator (before reasoning steps arrive) */}
+              {isLoading && reasoningSteps.length === 0 && streamingContent === null && (
+                <TypingIndicator />
+              )}
+
+              {/* Live streaming bubble */}
+              {streamingContent !== null && (
+                <StreamingBubble content={streamingContent} />
+              )}
 
               <div ref={scrollRef} />
             </div>
 
-            {/* Quick prompts */}
+            {/* Quick prompts — shown only on fresh sessions */}
             {messages.length === 1 && !isLoading && (
               <QuickPrompts onSelect={handleSend} />
             )}

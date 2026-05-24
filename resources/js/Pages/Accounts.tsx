@@ -7,15 +7,8 @@ import { AccountDialog } from "@/components/accounts/account-dialog"
 import { AccountTable, SkeletonTable } from "@/components/accounts/account-table"
 import { toast } from "sonner"
 
-interface Account {
-  id: number
-  name: string
-  email: string
-  phone: string
-  country: string
-  address: string
-  avatar: string | null
-}
+import { Account } from "@/types/account"
+
 
 interface PaginatedData<T> {
   data: T[]
@@ -28,6 +21,7 @@ interface PaginatedData<T> {
 
 interface AccountsPageProps {
   accounts?: PaginatedData<Account>
+  kasirPermissions?: string[]
   filters: {
     search: string | null
     sort: string | null
@@ -35,7 +29,7 @@ interface AccountsPageProps {
   }
 }
 
-export default function AccountsPage({ accounts, filters }: AccountsPageProps) {
+export default function AccountsPage({ accounts, filters, kasirPermissions = [] }: AccountsPageProps) {
 
   // Dialog open/close state
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
@@ -109,6 +103,7 @@ export default function AccountsPage({ accounts, filters }: AccountsPageProps) {
           isOpen={isDialogOpen}
           onOpenChange={setIsDialogOpen}
           editingUser={editingUser}
+          kasirPermissions={kasirPermissions}
         />
       </SidebarInset>
     </SidebarProvider>
