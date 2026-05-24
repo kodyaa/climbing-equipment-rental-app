@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/images/book.png" alt="SummitRent Cover" width="800">
+</p>
+
 # SummitRent by Kodya
 
 **SummitRent by Kodya** adalah aplikasi manajemen penyewaan peralatan pendakian gunung dan berkemah (hiking) premium. Dibangun di atas web stack modern, aplikasi ini menawarkan portal yang efisien bagi agen penyewaan outdoor untuk mengelola akun kasir/admin, melacak inventaris alat, menetapkan tarif harga sewa, mengelola pelanggan, memproses transaksi sewa, dan menerima asisten AI secara real-time.

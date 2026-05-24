@@ -216,6 +216,8 @@ class AiAgentController extends Controller
         $text = preg_replace('/<function-args>([\s\S]*?)<\/function-args>/i', ' ($1) ', $text);
         // Remove raw formatting wrapper tags like <call>, </call>, <function-call>, </function-call>
         $text = str_ireplace(['<call>', '</call>', '<function-call>', '</function-call>'], '', $text);
+        // Replace raw function:ToolName with `ToolName`
+        $text = preg_replace('/\bfunction:([\w\-]+)/i', '`$1`', $text);
 
         return trim($text);
     }

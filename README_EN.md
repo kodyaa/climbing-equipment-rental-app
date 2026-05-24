@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/images/book.png" alt="SummitRent Cover" width="800">
+</p>
+
 # SummitRent by Kodya
 
 **SummitRent by Kodya** is a premium mountain climbing and hiking equipment rental management application. Built on a modern web stack, it offers outdoor rental agencies a streamlined portal to manage staff cashier accounts, track equipment inventory, set custom rental prices, register customers, process rentals, and interact with a real-time AI assistant.
