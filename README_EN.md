@@ -62,6 +62,8 @@
 
 1. **Clone & Install Dependencies:**
    ```bash
+   git clone https://github.com/kodyaa/climbing-equipment-rental-app.git
+   cd climbing-equipment-rental-app
    composer install
    npm install
    ```
